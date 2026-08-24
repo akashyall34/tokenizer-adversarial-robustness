@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper below. Author details withheld for double-blind review; this file will be updated post-review."
+title: "Adversarial Robustness of Discrete Image Tokenizers in Medical Pipelines"
+authors:
+  - name: "Anonymous"
+date-released: 2026-08-18
+license: MIT
+preferred-citation:
+  type: article
+  title: "Adversarial Robustness of Discrete Image Tokenizers in Medical Pipelines"
+  authors:
+    - name: "Anonymous"
+  year: 2026

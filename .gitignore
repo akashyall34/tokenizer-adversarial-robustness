@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Data / large artifacts -- never commit these; see docs/data.md
+data/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+results/
+*.zip
+third_party/
+
+# ckpts/ is tracked intentionally -- final checkpoints committed for reproducibility.
+# Any single file here over GitHub's 100MB hard limit will be rejected on push.
+!ckpts/
+!ckpts/**
+wandb/
+outputs/
+mlruns/
+
+# Env / secrets
+.env
+
+# OS
+.DS_Store

@@ -1,0 +1,10 @@
+seed: 42
+img_size: 256
+val_frac: 0.1
+n_attack: 256
+batch: 32
+attack_batch: 8
+num_workers: 4
+eps_grid: [0.5, 1, 2, 4, 8]   # x/255 on internal [-1,1]; pixel eps = value/2
+steps: 50
+attack_lr: 0.01

@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+"""Full SQS defense sweep for MediTok on APTOS: sanity check,
+pixel-noise baseline, and all three token-voting SQS variants (flat,
+spatial-consensus, margin-adaptive), plus the K x sigma check. Same role and
+same SEL_ITEMS-only selection discipline as
+scripts/defenses/vq16_aptos/sweep_sqs_aptos.py. Runs meditok in
+one pass, one winner config per tokenizer.
+
+Usage:
+    python scripts/defenses/meditok_aptos/sweep_sqs_aptos.py \
+        --data-root /path/to/aptos2019 --meditok-repo third_party/meditok \
+        --tokenizer-ckpt-dir third_party/ckpt --effnet-ckpt path/to/effnet_ckpt
+"""
+import argparse
+import json
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+import torch
+import yaml
+from tqdm.auto import tqdm
+
+_root = os.path.abspath(os.path.dirname(__file__))
+while not os.path.isfile(os.path.join(_root, "pyproject.toml")):
+    _root = os.path.dirname(_root)
+sys.path.insert(0, _root)
+
+from src.datasets.aptos import build_splits
+from src.datasets.kermany import load_xy, seed_everything, stratified_subset
+from src.defenses.multicodebook.pixel_noise import pixel_noise_reconstruct
+from src.defenses.multicodebook.sqs import (
+    per_token_min_margin, sqs_logit_ensemble_predict, sqs_reconstruct, sqs_reconstruct_adaptive,
+)
+from src.eval.sel_report_split import stratified_half_split
+from src.eval.sqs_sweep import score_config, score_config_logit_ensemble
+from src.models.efficientnet_classifier import EfficientNetClassifier, load_efficientnet
+
+
+def load_densenet(ckpt_path, device):
+    """Alias, same trick the source notebook uses: wrap EfficientNet-B5 into
+    the same load_ckpt(path, device) -> classifier object interface this
+    script's downstream code (margin/decoder-realism/certify helpers, all
+    written against DenseNet's raw-nn.Module calling convention: net(x) for
+    the logit, net.features(x) for perceptual features) expects, so none of
+    that shared code needs touching."""
+    net = load_efficientnet(ckpt_path, device)
+    return EfficientNetClassifier(net, device)
+
+
+def densenet_logit(densenet, x):
+    return densenet(x)
+
+
+from src.tokenizers.meditok_unitok import load_meditok
+
+CLEAN_AUC_FLOOR = 0.85
+K_SWEEP = 16
+SIGMA_GRID = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]  # same starting grid as VQ-16's
+                                                                     # (both cosine/unit-normalized
+                                                                     # spaces) -- measured below, not
+                                                                     # assumed equal.
+K_GRID = [4, 8, 16, 32]
+SPATIAL_WEIGHT_GRID = [0.4, 0.5, 0.6, 0.7, 0.8]
+AGREEMENT_THRESH_GRID = [50, 60, 70, 80, 90]
+SIGMA_MULT_GRID = [2.0, 4.0, 8.0]
+LOGIT_ENSEMBLE_SIGMA_GRID = [0.005, 0.01, 0.02]
+
+
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--data-root", required=True)
+    p.add_argument("--meditok-repo", required=True)
+    p.add_argument("--tokenizer-ckpt-dir", required=True)
+    p.add_argument("--effnet-ckpt", required=True)
+    p.add_argument("--out-dir", default="results/outputs")
+    p.add_argument("--adv-dir", default="results/adv_images")
+    p.add_argument("--config", default="configs/aptos_attack.yaml")
+    p.add_argument("--sweep-eps", type=int, default=None, help="default: worst-case/largest in eps_grid")
+    return p.parse_args()
+
+
+def pick_best(df, score_col, clean_col="auc_clean"):
+    ok = df[df[clean_col] >= CLEAN_AUC_FLOOR]
+    if len(ok):
+        return ok.loc[ok[score_col].idxmax()]
+    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- picking best clean-preserving config instead ***")
+    return df.loc[df[clean_col].idxmax()]
+
+
+def sweep_one(tok_name, load_fresh, args, cfg, densenet, sel_items, sel_idx, sweep_eps, device):
+    orig_tok = load_fresh()
+    Xc_sel, Yc_sel = load_xy(sel_items, cfg["img_size"], device)
+    bs = cfg["attack_batch"]
+
+    def clf(x):
+        return densenet_logit(densenet, x)
+
+    def score(recon_fn):
+        return score_config(recon_fn, clf, Xc_sel, Yc_sel, args.adv_dir, tok_name, sweep_eps, sel_idx, device, bs)
+
+    # --- sanity check: sqs_reconstruct(sigma=0) should match the real quantizer's own reconstruct ---
+    diff = (sqs_reconstruct(orig_tok, Xc_sel[:16], K=1, sigma=0.0, spatial=False)
+            - orig_tok.reconstruct(Xc_sel[:16])).abs().max().item()
+    print(f"{tok_name}: sqs_reconstruct(sigma=0) vs. real reconstruct: max abs diff = {diff:.6f}")
+    if diff > 1e-2:
+        print("*** MISMATCH exceeds the expected float32-decoder noise floor -- a REAL logic error. "
+              "Needs fixing before trusting any SQS number. ***")
+    else:
+        print("within the expected float32-through-decoder noise floor -- safe to proceed.")
+
+    # --- pixel-noise baseline ---
+    csv_pixel = os.path.join(args.out_dir, f"{tok_name}_pixel_noise_sweep.csv")
+    if os.path.isfile(csv_pixel):
+        print(f"already computed -> {csv_pixel}")
+        pixel_df = pd.read_csv(csv_pixel)
+    else:
+        rows = []
+        for sigma in tqdm(SIGMA_GRID, desc=f"{tok_name} pixel-noise sweep"):
+            auc_clean, mean_recovery, _ = score(lambda x, s=sigma: pixel_noise_reconstruct(orig_tok, x, K_SWEEP, s))
+            rows.append(dict(sigma=sigma, auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4)))
+        pixel_df = pd.DataFrame(rows)
+        pixel_df.to_csv(csv_pixel, index=False)
+        print("wrote ->", csv_pixel)
+    print(pixel_df.to_string(index=False))
+    pixel_best = pick_best(pixel_df, "mean_auc_adv")
+    print(f"selected pixel-noise baseline: sigma={pixel_best.sigma}, K={K_SWEEP}\n")
+
+    # --- flat SQS sweep ---
+    csv_flat = os.path.join(args.out_dir, f"{tok_name}_sqs_flat_sweep.csv")
+    if os.path.isfile(csv_flat):
+        print(f"already computed -> {csv_flat}")
+        flat_df = pd.read_csv(csv_flat)
+    else:
+        rows = []
+        for sigma in tqdm(SIGMA_GRID, desc=f"{tok_name} flat SQS sweep"):
+            auc_clean, mean_recovery, _ = score(lambda x, s=sigma: sqs_reconstruct(orig_tok, x, K_SWEEP, s, spatial=False))
+            rows.append(dict(sigma=sigma, auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4)))
+        flat_df = pd.DataFrame(rows)
+        flat_df.to_csv(csv_flat, index=False)
+        print("wrote ->", csv_flat)
+    print(flat_df.to_string(index=False))
+    flat_best = pick_best(flat_df, "mean_auc_adv")
+    sqs_sigma_flat = float(flat_best.sigma)
+    print(f"selected flat SQS: sigma={sqs_sigma_flat}, K={K_SWEEP}\n")
+
+    # --- K x sigma: is K worth varying, or inert? ---
+    csv_k_sigma = os.path.join(args.out_dir, f"{tok_name}_sqs_k_sigma_grid.csv")
+    if os.path.isfile(csv_k_sigma):
+        print(f"already computed -> {csv_k_sigma}")
+        k_sigma_df = pd.read_csv(csv_k_sigma)
+    else:
+        rows = []
+        for k in tqdm(K_GRID, desc=f"{tok_name} K x sigma sweep"):
+            for sigma in SIGMA_GRID:
+                auc_clean, mean_recovery, _ = score(lambda x, kk=k, s=sigma: sqs_reconstruct(orig_tok, x, kk, s, spatial=False))
+                rows.append(dict(K=k, sigma=sigma, auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4)))
+        k_sigma_df = pd.DataFrame(rows)
+        k_sigma_df.to_csv(csv_k_sigma, index=False)
+        print("wrote ->", csv_k_sigma)
+    print(f"mean_auc_adv range across the K x sigma grid: {k_sigma_df.mean_auc_adv.min():.4f} - {k_sigma_df.mean_auc_adv.max():.4f}\n")
+
+    # --- spatial-consensus SQS sweep ---
+    csv_spatial = os.path.join(args.out_dir, f"{tok_name}_sqs_spatial_sweep.csv")
+    if os.path.isfile(csv_spatial):
+        print(f"already computed -> {csv_spatial}")
+        spatial_df = pd.read_csv(csv_spatial)
+    else:
+        rows = []
+        for sigma in tqdm(SIGMA_GRID[:6], desc=f"{tok_name} spatial SQS sweep"):  # exclude the
+                                                                                    # 0.05/0.1 plateau-
+                                                                                    # extension points,
+                                                                                    # keeps the 3D grid
+                                                                                    # from tripling
+            for sw in SPATIAL_WEIGHT_GRID:
+                for th in AGREEMENT_THRESH_GRID:
+                    auc_clean, mean_recovery, _ = score(
+                        lambda x, s=sigma, w=sw, t=th: sqs_reconstruct(
+                            orig_tok, x, K_SWEEP, s, spatial=True, spatial_weight=w, agreement_thresh_pct=t))
+                    rows.append(dict(sigma=sigma, spatial_weight=sw, agreement_thresh_pct=th,
+                                      auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4)))
+        spatial_df = pd.DataFrame(rows)
+        spatial_df.to_csv(csv_spatial, index=False)
+        print(f"wrote full sweep -> {csv_spatial} ({len(spatial_df)} configs)")
+    spatial_best = pick_best(spatial_df, "mean_auc_adv")
+    sqs_sigma_spatial = float(spatial_best.sigma)
+    sqs_spatial_weight = float(spatial_best.spatial_weight)
+    sqs_agreement_thresh = float(spatial_best.agreement_thresh_pct)
+    print(f"selected spatial SQS: sigma={sqs_sigma_spatial}, spatial_weight={sqs_spatial_weight}, "
+          f"agreement_thresh_pct={sqs_agreement_thresh}, K={K_SWEEP}")
+    print(f"clean AUC={spatial_best.auc_clean}, mean adversarial AUC={spatial_best.mean_auc_adv}\n")
+
+    # --- margin-adaptive noise: calibrate margin_low/margin_high from the real clean margin distribution ---
+    with torch.no_grad():
+        z_clean = orig_tok.encode_prequant(Xc_sel)
+        clean_margins = per_token_min_margin(orig_tok, z_clean).flatten().cpu().numpy()
+    margin_low = float(np.percentile(clean_margins, 10))
+    margin_high = float(np.percentile(clean_margins, 90))
+    print(f"{tok_name} clean margin distribution: p10={margin_low:.4f}  median={np.median(clean_margins):.4f}  p90={margin_high:.4f}")
+
+    csv_adaptive = os.path.join(args.out_dir, f"{tok_name}_sqs_margin_adaptive_sweep.csv")
+    if os.path.isfile(csv_adaptive):
+        print(f"already computed -> {csv_adaptive}")
+        adaptive_df = pd.read_csv(csv_adaptive)
+    else:
+        rows = []
+        for sigma_base in tqdm(SIGMA_GRID[:6], desc=f"{tok_name} margin-adaptive sweep"):
+            for mult in SIGMA_MULT_GRID:
+                auc_clean, mean_recovery, _ = score(
+                    lambda x, s=sigma_base, m=mult: sqs_reconstruct_adaptive(orig_tok, x, K_SWEEP, s, margin_low, margin_high, m))
+                rows.append(dict(sigma_base=sigma_base, sigma_mult_max=mult,
+                                  auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4)))
+        adaptive_df = pd.DataFrame(rows)
+        adaptive_df.to_csv(csv_adaptive, index=False)
+        print("wrote ->", csv_adaptive)
+    adaptive_best = pick_best(adaptive_df, "mean_auc_adv")
+    sqs_sigma_adaptive_base = float(adaptive_best.sigma_base)
+    sqs_sigma_mult_max = float(adaptive_best.sigma_mult_max)
+    print(f"selected margin-adaptive SQS: sigma_base={sqs_sigma_adaptive_base}, sigma_mult_max={sqs_sigma_mult_max}, K={K_SWEEP}")
+    print(f"clean AUC={adaptive_best.auc_clean}, mean adversarial AUC={adaptive_best.mean_auc_adv}\n")
+
+    # --- logit-ensemble diagnostic: a different smoothing POINT, not a different sigma ---
+    def score_logit(predict_fn):
+        return score_config_logit_ensemble(predict_fn, Xc_sel, Yc_sel, args.adv_dir, tok_name, sweep_eps, sel_idx, device, bs)
+
+    csv_logit = os.path.join(args.out_dir, f"{tok_name}_sqs_logit_ensemble_sweep.csv")
+    rows = []
+    for sigma in tqdm(LOGIT_ENSEMBLE_SIGMA_GRID, desc=f"{tok_name} logit-ensemble SQS sweep"):
+        auc_clean, mean_recovery, per_attack = score_logit(
+            lambda x, s=sigma: sqs_logit_ensemble_predict(orig_tok, densenet, x, K_SWEEP, s))
+        rows.append(dict(sigma=sigma, auc_clean=round(auc_clean, 4), mean_auc_adv=round(mean_recovery, 4),
+                          auc_adv_M1=round(per_attack[0], 4), auc_adv_M3_alpha03=round(per_attack[1], 4)))
+    logit_df = pd.DataFrame(rows)
+    logit_df.to_csv(csv_logit, index=False)
+    print("wrote ->", csv_logit)
+    print(logit_df.to_string(index=False))
+    print(f"{tok_name}: compare auc_adv_M1/auc_adv_M3_alpha03 here against flat/spatial/adaptive's same "
+          f"columns -- if still ~0.0, the dense/redundant attack pattern survives per-sample logit "
+          f"averaging too, not just per-token voting.\n")
+
+    # --- pick the one standalone winner for advft+SQS and the BPDA check ---
+    summary = pd.DataFrame([
+        dict(variant="flat", auc_clean=flat_best.auc_clean, mean_auc_adv=flat_best.mean_auc_adv),
+        dict(variant="spatial", auc_clean=spatial_best.auc_clean, mean_auc_adv=spatial_best.mean_auc_adv),
+        dict(variant="margin_adaptive", auc_clean=adaptive_best.auc_clean, mean_auc_adv=adaptive_best.mean_auc_adv),
+    ])
+    print(summary.to_string(index=False))
+    ok = summary[summary.auc_clean >= CLEAN_AUC_FLOOR]
+    pool = ok if len(ok) else summary
+    if not len(ok):
+        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- "
+              f"picking the best clean-preserving variant instead ***")
+    best_name = pool.loc[pool.mean_auc_adv.idxmax(), "variant"] if len(ok) else pool.loc[pool.auc_clean.idxmax(), "variant"]
+    print(f"\n{tok_name} WINNER: {best_name}")
+
+    winner_params = {
+        "flat": dict(K=K_SWEEP, sigma=sqs_sigma_flat),
+        "spatial": dict(K=K_SWEEP, sigma=sqs_sigma_spatial, spatial_weight=sqs_spatial_weight,
+                         agreement_thresh_pct=sqs_agreement_thresh),
+        "margin_adaptive": dict(K=K_SWEEP, sigma_base=sqs_sigma_adaptive_base, margin_low=margin_low,
+                                 margin_high=margin_high, sigma_mult_max=sqs_sigma_mult_max),
+    }
+    winner_config = dict(name=best_name, params=winner_params[best_name], all_variant_params=winner_params,
+                          pixel_noise_sigma=float(pixel_best.sigma), pixel_noise_K=K_SWEEP)
+    winner_path = os.path.join(args.out_dir, f"{tok_name}_sqs_winner.json")
+    with open(winner_path, "w") as f:
+        json.dump(winner_config, f, indent=2)
+    print(f"wrote winner config -> {winner_path}\n")
+    del orig_tok
+    torch.cuda.empty_cache()
+
+
+def main():
+    args = parse_args()
+    cfg = yaml.safe_load(open(args.config))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    os.makedirs(args.out_dir, exist_ok=True)
+    sweep_eps = args.sweep_eps if args.sweep_eps is not None else cfg["eps_grid"][-1]
+
+    seed_everything(cfg["seed"])
+    _, _, test_items = build_splits(args.data_root, args.out_dir)
+    attack_items = stratified_subset(test_items, cfg["n_attack"], cfg["seed"])
+    sel_idx, _ = stratified_half_split(attack_items, cfg["seed"] + 999)
+    sel_items = [attack_items[i] for i in sel_idx]
+
+    densenet = load_densenet(args.effnet_ckpt, device)
+
+    tok_name = "meditok"
+    load_fresh = lambda: load_meditok(args.meditok_repo, args.tokenizer_ckpt_dir, cfg["img_size"], device)
+    print(f"=== {tok_name} ===")
+    sweep_one(tok_name, load_fresh, args, cfg, densenet, sel_items, sel_idx, sweep_eps, device)
+
+
+if __name__ == "__main__":
+    main()
