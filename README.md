@@ -5,6 +5,13 @@ tokenizers (VQ-16, FSQ, and the domain-paired ViT-based MedITok / UniTok)
 placed ahead of a medical-image classifier, on chest X-ray, fundus, and
 dermoscopy.
 
+![Threat model](docs/assets/threat-model.png)
+
+*Threat model: an adversary who knows the tokenizer architecture but cannot
+query the downstream classifier or probe adds an imperceptible pixel-space
+perturbation. The same tokenizer yields the correct diagnosis on the clean
+image and the wrong one on the perturbed image.*
+
 ## Research questions
 
 1. Does a boundary-targeted (Voronoi/grid-wall) attack on the tokenizer's codebook
