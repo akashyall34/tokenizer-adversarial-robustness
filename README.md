@@ -66,7 +66,7 @@ scripts/
   run_pipeline.py      single entry point that runs a named stage in the correct order
   setup_third_party.sh clones LlamaGen/MediTok/UniTok/FSQ-pytorch + fetches their checkpoints
 configs/              hyperparameters (eps grid, sigma values, etc.), one YAML per dataset
-ckpts/                classifier + linear-probe checkpoints (Git LFS)
+ckpts/                classifier + linear-probe checkpoints (committed directly)
 docs/                 data acquisition, checkpoint layout, known limitations
 ```
 
@@ -94,9 +94,15 @@ Datasets (Kermany chest X-ray, APTOS, ISIC 2019) are not included; see
 
 ## Pretrained checkpoints
 
-Classifier and linear-probe checkpoints are committed in `ckpts/` via Git LFS.
-Install Git LFS before cloning (`git lfs install`) so the real weights come
-down instead of pointer files — see `docs/checkpoints.md` for the layout.
+The 3 classifier and 12 linear-probe checkpoints are committed directly in
+`ckpts/` (no Git LFS). One classifier exceeds GitHub's 100 MB file limit and
+ships split, so after cloning run once:
+
+```bash
+python scripts/fetch_checkpoints.py
+```
+
+See `docs/checkpoints.md` for the layout.
 
 ## Reproducing results
 

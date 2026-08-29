@@ -26,7 +26,8 @@ results/paper_figures/
 third_party/
 
 # ckpts/ is tracked intentionally -- final checkpoints committed for reproducibility.
-# Any single file here over GitHub's 100MB hard limit will be rejected on push.
+# The one file over GitHub's 100 MB limit ships split (.part00/.part01);
+# scripts/fetch_checkpoints.py reassembles it, and the assembled file is ignored below.
 !ckpts/
 !ckpts/**
 wandb/
@@ -43,3 +44,6 @@ mlruns/
 
 # OS
 .DS_Store
+
+# reassembled by scripts/fetch_checkpoints.py from the committed .part files
+ckpts/classifiers/effnet_b5_aptos.pt
