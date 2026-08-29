@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial fine-tuning of the VQ-16 encoder against its own M3 boundary
+"""Adversarial fine-tuning of the VQ-16 encoder against its own M2 boundary
 attack, on Kermany. One checkpoint per eps255 in the config's eps_grid.
 
 Trains directly against the already-generated cached attack images (see
@@ -9,7 +9,7 @@ against REPORT_ITEMS, the untouched other half, so nothing reported was also
 used to pick its own hyperparameters or train the model being reported on.
 
 The inner "attack" step finds the worst-case perturbation that maximizes the
-margin against the CURRENT model (M3_geo_sat's mechanism, pointed at the
+margin against the CURRENT model (M2-sat's mechanism, pointed at the
 trainable model); the outer "defense" step takes a gradient step on the
 encoder + quant_conv only (codebook, decoder, classifier frozen) to minimize
 that same worst-case margin. No labels: the target code k1 is read off the
@@ -47,7 +47,7 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.densenet_classifier import load_densenet, logit as densenet_logit
 from src.tokenizers.vq16 import load_vq16_net
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def parse_args():

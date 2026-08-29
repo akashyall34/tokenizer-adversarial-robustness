@@ -8,7 +8,7 @@ import torch
 from src.eval.attack_io import load_folder
 from src.eval.metrics import auc
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 @torch.no_grad()

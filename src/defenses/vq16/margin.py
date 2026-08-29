@@ -1,13 +1,12 @@
 """Corrected (L2-normalized) VQ-16 margin computation, used for adversarial
 fine-tuning. This is deliberately separate from src/attacks/vq16_attacks.py's
-margin_loss(), which is unnormalized and kept faithful to VQ16.ipynb -- see
+margin_loss(), which computes the margin on unnormalized vectors -- see
 docs/known_limitations.md for why the two differ and why both exist.
 
-VQ-16's real `quantize` module L2-normalizes both the latent and the codebook
-before its own nearest-neighbor lookup internally; this was confirmed by
-direct measurement (comparing this module's predicted nearest code against
-`model.encode()`'s real assigned code, see scripts/diagnostics/diagnose_vq16_margin_bug.py),
-not assumed.
+VQ-16's `quantize` module L2-normalizes both the latent and the codebook
+before its nearest-neighbor lookup; the unnormalized proxy agrees with that
+real assignment only 51.93% of the time (measured directly against
+`model.encode()`, see scripts/diagnostics/diagnose_vq16_margin_bug.py).
 """
 import torch
 import torch.nn.functional as F

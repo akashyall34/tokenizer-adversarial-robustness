@@ -2,15 +2,13 @@
 """MediTok + UniTok ISIC pipeline. Same attack/probe logic as
 run_meditok_unitok_kermany.py, against ISIC 2019 + EfficientNet-B4 (timm).
 
-Two things differ from the Kermany/APTOS versions, matching
-ISIC-official-RUN.ipynb exactly:
+Two things differ from the Kermany/APTOS versions:
   - attack_batch defaults to 4 here (not the config's 8, which is for the
-    VQ-16 run) -- the notebook drops it explicitly before this section,
-    citing decoder + B4 classifier memory pressure.
+    VQ-16 run) -- the decoder plus the B4 classifier need the extra memory
+    headroom.
   - The per-tokenizer eval table does NOT include M0 rows. M0 is
-    tokenizer-free and already fully covered by vq16_attack_table.csv (see
-    run_vq16_isic.py, which saves it under <adv-dir>/m0/); the notebook's
-    own comment says as much rather than duplicating it here.
+    tokenizer-free and already covered by vq16_attack_table.csv (see
+    run_vq16_isic.py, which saves it under <adv-dir>/m0/).
 
 Usage:
     python scripts/attacks/run_meditok_unitok_isic.py --data-root /path/to/isic2019 \
@@ -68,7 +66,7 @@ def parse_args():
 
 def run_tokenizer(tok, logit_fn, cfg, args, train_items, val_items, test_items, attack_items, loader, device):
     attacks = make_attacks(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

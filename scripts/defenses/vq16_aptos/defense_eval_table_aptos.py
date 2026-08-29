@@ -60,7 +60,7 @@ from src.tokenizers.vq16 import load_vq16_net
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B5 into
+    """Alias: wrap EfficientNet-B5 into
     the same load_ckpt(path, device) -> classifier object interface this
     script's downstream code (margin/decoder-realism/certify helpers, all
     written against DenseNet's raw-nn.Module calling convention: net(x) for
@@ -74,7 +74,7 @@ def densenet_logit(densenet, x):
     return densenet(x)
 
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 DEFENSES = ["none", "pixel_noise", "best_sqs", "advft", "advft+best_sqs", "decoder_realism", "combined"]
 FIELDS = ["defense", "finetune_eps255", "attack", "eval_eps255", "eval_eps_pixel", "n",
           "auc_recon_clean", "auc_recon_adv", "drop_recon", "asr_recon",

@@ -1,8 +1,9 @@
-# Adversarial Robustness of Neural Image Tokenizers
+# Adversarial Attacks Expose Path-Dependent Failures in Discrete Medical Image Tokenizers
 
-Code for studying adversarial attacks and defenses against neural image tokenizers
-(VQ-16, FSQ, and the domain-paired ViT-based MediTok/UniTok) placed ahead of a
-medical-image classifier.
+Code for the paper. Adversarial attacks and defenses against discrete image
+tokenizers (VQ-16, FSQ, and the domain-paired ViT-based MedITok / UniTok)
+placed ahead of a medical-image classifier, on chest X-ray, fundus, and
+dermoscopy.
 
 ## Research questions
 
@@ -13,6 +14,20 @@ medical-image classifier.
 3. Does token-flip translate to clinically meaningful misclassification, and does
    this generalize across tokenizers and datasets?
 4. Are domain-specific tokenizers inherently more robust than general-domain ones?
+
+## Attack names
+
+The repo uses the paper's attack names everywhere -- source, configs, the
+`attack` column of every CSV, and the `results/adv_images/<tok>/<attack>/`
+directory names:
+
+| id | paper | what it is |
+|----|-------|------------|
+| `M0` | M0 | direct classifier attack, tokenizer bypassed (reference baseline) |
+| `M1` | M1 | tokenizer-mediated supervised attack (task loss through encoder/quantizer/decoder) |
+| `M2-sat` | M2-sat | boundary-directed geometric attack, saturating (bounded) once a token flips |
+| `M2-unb` | M2-unb | boundary-directed geometric attack, unbounded (keeps displacing past the boundary) |
+| `M3_alpha03` | -- | **not used in the paper**: an auxiliary alpha=0.3 blend of the M2 margin objective with M1's BCE loss, retained in the pipeline for completeness |
 
 ## Structure
 
@@ -42,12 +57,12 @@ scripts/
                          meditok_kermany/  meditok_aptos/  meditok_isic/
                          unitok_kermany/   unitok_aptos/   unitok_isic/
                          fsq_kermany/      fsq_aptos/      fsq_isic/
-                       (attack generation stays combined per scripts/attacks/
-                       run_meditok_unitok_{dataset}.py -- MediTok and UniTok share one
-                       attack-generation pass since the source notebooks do, but the
-                       defense notebooks split into separate meditok_adv_finetune_*.ipynb
-                       / unitok_adv_finetune_*.ipynb, so the defense scripts split too.)
+                       (MediTok and UniTok share one attack-generation pass in
+                       scripts/attacks/run_meditok_unitok_{dataset}.py; their
+                       defense pipelines are separate directories.)
   diagnostics/        one-off verification/measurement scripts, not part of the main pipeline
+  paper/             regenerate the workshop paper's figures/tables from the run CSVs
+                       (build_paper_figures.py + check_paper_figures.py)
   run_pipeline.py      single entry point that runs a named stage in the correct order
   setup_third_party.sh clones LlamaGen/MediTok/UniTok/FSQ-pytorch + fetches their checkpoints
 configs/              hyperparameters (eps grid, sigma values, etc.), one YAML per dataset
@@ -56,22 +71,12 @@ docs/                 data acquisition, checkpoint layout, known limitations
 ```
 
 **Coverage** (tokenizer x dataset): all four tokenizers (VQ-16, MediTok,
-UniTok, FSQ) have a full defense pipeline on all three datasets (Kermany,
-APTOS, ISIC) -- 12/12. Attack generation stays combined per tokenizer family
-(`scripts/attacks/run_meditok_unitok_{dataset}.py` produces both MediTok's
-and UniTok's attack images in one pass, matching the source notebooks) --
-only the defense pipelines split into separate `meditok_{dataset}/` and
-`unitok_{dataset}/` directories, matching the source repo's now-separate
-`meditok_adv_finetune_*.ipynb` / `unitok_adv_finetune_*.ipynb` notebooks.
-
-Not every combination was ported from an already-executed notebook -- some
-were built by wiring a tokenizer's already-verified, dataset-agnostic
-defense math (`src/defenses/{vq16,fsq,multicodebook}/`) to a dataset's
-existing loader/classifier, the same code paths every other pipeline already
-exercises. Execution status (which notebooks have actually run, how far, and
-with what results) changes frequently upstream -- see
-`docs/known_limitations.md`'s execution-status table for the current state
-rather than treating "code-complete" as "verified."
+UniTok, FSQ) have a full attack + defense pipeline on all three datasets
+(Kermany, APTOS, ISIC) -- 12/12. Attack generation stays combined per
+tokenizer family: `scripts/attacks/run_meditok_unitok_{dataset}.py` produces
+both MediTok's and UniTok's adversarial images in one pass, while the defense
+pipelines are split into separate `meditok_{dataset}/` and `unitok_{dataset}/`
+directories. Known caveats are in `docs/known_limitations.md`.
 
 ## Setup
 
@@ -102,6 +107,23 @@ before `merge`). See `python scripts/run_pipeline.py --help` for the list of
 stages. Split indices aren't pre-checked-in files; each script deterministically
 re-derives the same split from the dataset's config (`seed`, `val_frac`, ...),
 so nothing needs to ship separately for the split to be reproducible.
+
+### Paper figures and tables
+
+Every data figure and results table in the workshop paper is regenerated from
+the run CSVs by `scripts/paper/` -- per float a `.csv` of the numbers, the
+`.tex` (complete `tikzpicture` / `tabular`, scaffolding lifted verbatim from the
+paper), and that `.tex` compiled to `.pdf` with `pdflatex` (`--no-pdf` skips it):
+
+```bash
+python scripts/paper/build_paper_figures.py    # -> results/paper_figures/<name>.{csv,tex,pdf}
+python scripts/paper/check_paper_figures.py     # recompute headline cells, compare to the paper
+```
+
+The input CSVs are vendored under `results/paper_inputs/` and committed.
+`check_paper_figures.py` recomputes the headline cells of each float against the
+numbers printed in the paper (all match to <= 0.001 AUC). See
+`scripts/paper/README.md` for the float coverage and the two provenance notes.
 
 ## Citation
 

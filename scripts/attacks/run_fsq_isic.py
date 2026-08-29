@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""FSQ ISIC pipeline. Same anchored-margin M1/M3_alpha03/M3_geo_sat/M3_geo_unb
+"""FSQ ISIC pipeline. Same anchored-margin M1/M3_alpha03/M2-sat/M2-unb
 attack set as run_fsq_aptos.py (see src/attacks/fsq_attacks.py's module
 docstring for why this differs from run_fsq_kermany.py's FSQ attacks), against
 ISIC 2019 + EfficientNet-B4 (timm). M0 is reused from the VQ-16 ISIC run (see
 run_vq16_isic.py, which saves it under <adv-dir>/m0/).
 
-No notebook ground truth for this script -- FSQ-on-ISIC was never run
-upstream (no notebook, no cached attack bundle, no checkpoint anywhere in the
-source repo). Built by the same recipe as run_fsq_aptos.py/run_fsq_kermany.py,
-reusing the exact same tokenizer-agnostic attack code (src/attacks/fsq_attacks.py)
-and the same dataset/classifier wiring run_meditok_unitok_isic.py already uses
-for ISIC -- not new math, just the missing (tokenizer, dataset) wiring.
+This pair reuses the tokenizer-agnostic FSQ attack code
+(src/attacks/fsq_attacks.py) with the ISIC dataset/classifier wiring from
+run_meditok_unitok_isic.py.
 
 attack_batch defaults to 4 here (not the config's 8, which is for the VQ-16
 run) -- same reasoning as run_meditok_unitok_isic.py's override: FSQ's own
@@ -88,7 +85,7 @@ def main():
     tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
 
     attacks = make_attacks_anchored(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

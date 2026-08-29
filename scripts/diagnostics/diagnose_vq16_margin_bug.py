@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Quantifies the real impact of VQ16.ipynb's unnormalized-margin bug (see
-docs/known_limitations.md) on the ALREADY-GENERATED cached M3 attack images.
+"""Quantifies the footprint of the unnormalized VQ-16 attack margin (see
+docs/known_limitations.md) on the cached M2 / M3_alpha03 attack images.
 
-The perturbations themselves can't be regenerated retroactively, but the
-mistargeting's footprint can be measured directly: of the tokens that
-actually flipped (judged by the REAL quantizer, not the buggy unnormalized
-proxy), what fraction landed on the code that was truly the nearest rival at
-the clean point, versus some other, non-nearest code? Cite this table
-directly in the paper's limitations section instead of an unquantified caveat.
+The perturbations are not regenerated; the mistargeting is measured directly:
+of the tokens that actually flipped (judged by the real quantizer, not the
+unnormalized proxy), what fraction landed on the code that was truly the
+nearest rival at the clean point, versus some other, non-nearest code?
 
 Usage:
     python scripts/diagnostics/diagnose_vq16_margin_bug.py --data-root /path/to/chest_xray \
@@ -91,7 +89,7 @@ def main():
     csv_path = os.path.join(args.out_dir, "vq16_geo_targeting_diagnostic.csv")
     rows = []
     print(f"Real impact of the unnormalized-margin bug, measured on REPORT_ITEMS (held-out, eps={args.eps255}):")
-    for attack in ["M3_alpha03", "M3_geo_sat", "M3_geo_unb"]:
+    for attack in ["M3_alpha03", "M2-sat", "M2-unb"]:
         fr, hr = diagnose_geo_targeting_quality(
             net, report_items, report_idx, args.adv_dir, attack, args.eps255, cfg["img_size"], device,
         )

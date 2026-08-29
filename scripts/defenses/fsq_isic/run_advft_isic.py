@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial fine-tuning of the FSQ encoder against its own M3 boundary
+"""Adversarial fine-tuning of the FSQ encoder against its own M2 boundary
 attack, on ISIC. One checkpoint per eps255 in the config's eps_grid. Same
 mechanism as scripts/defenses/fsq_aptos/run_advft_aptos.py, adapted to
 FSQ's per-dimension anchored scalar margin (src/defenses/fsq/margin.py) --
@@ -40,11 +40,11 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.efficientnet_isic_classifier import EfficientNetB4Classifier, load_efficientnet_b4
 from src.tokenizers.fsq import FSQTokenizer
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B5 into
+    """Alias: wrap EfficientNet-B5 into
     the same load_ckpt(path, device) -> classifier object interface this
     script's downstream code expects."""
     net = load_efficientnet(ckpt_path, device)

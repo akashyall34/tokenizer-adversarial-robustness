@@ -72,11 +72,10 @@ def make_features_fn(net: torch.nn.Module, device: str, img_size_clf: int = IMG_
 
 class EfficientNetB4Classifier:
     """Wraps timm's EfficientNet-B4 into the same two-method interface
-    DenseNet121's raw nn.Module happens to expose for free (`net(x)` ->
-    logit-shaped output, `net.features(x)` -> perceptual features) -- same
-    trick the source notebooks use so shared margin/decoder-realism/certify
-    code written against DenseNet's calling convention runs unchanged
-    against ISIC."""
+    DenseNet121's raw nn.Module exposes for free (`net(x)` -> logit-shaped
+    output, `net.features(x)` -> perceptual features), so the shared
+    margin / decoder-realism / certify code written against DenseNet's
+    calling convention runs unchanged against ISIC."""
 
     def __init__(self, net: torch.nn.Module, device: str, img_size_clf: int = IMG_SIZE_CLF):
         self.net = net

@@ -1,5 +1,7 @@
-"""M1 / M3 attacks against the multi-codebook (cosine similarity) tokenizers,
-MediTok and UniTok. M0 (tokenizer-free) is shared across all tokenizers —
+"""M1 / M2 attacks against the multi-codebook (cosine similarity) tokenizers,
+MediTok and UniTok (paper attack names; M2-sat/M2-unb are the geometric margin
+attack, saturating / unbounded). M3_alpha03 is an auxiliary alpha=0.3 blend
+not used in the paper. M0 (tokenizer-free) is shared across all tokenizers --
 see src/attacks/vq16_attacks.py.
 
 `logit_fn` is any callable image[B,3,H,W] in [-1,1] -> [B] classifier logit.
@@ -51,6 +53,6 @@ def make_attacks(tok, logit_fn, device: str, steps: int, lr: float):
     return {
         "M1": lambda x, y, e: M1(x, y, e),
         "M3_alpha03": lambda x, y, e: M3(x, y, e, 0.3, False),
-        "M3_geo_sat": lambda x, y, e: M3(x, y, e, 1.0, True),
-        "M3_geo_unb": lambda x, y, e: M3(x, y, e, 1.0, False),
+        "M2-sat": lambda x, y, e: M3(x, y, e, 1.0, True),
+        "M2-unb": lambda x, y, e: M3(x, y, e, 1.0, False),
     }

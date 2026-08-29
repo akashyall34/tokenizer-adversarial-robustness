@@ -14,10 +14,10 @@ import pandas as pd
 
 ORDER = ["vq16", "meditok", "unitok", "fsq"]  # row order; skips any not present
 WITH_RECON_ATTACKS = [
-    ("M1", "M1 (recon attack)"),
-    ("M3_alpha03", "M3 alpha=0.3"),
-    ("M3_geo_sat", "M3 geo saturated"),
-    ("M3_geo_unb", "M3 geo unbounded"),
+    ("M1", "M1 (supervised, recon attack)"),
+    ("M3_alpha03", "alpha=0.3 blend (non-paper)"),
+    ("M2-sat", "M2-sat (geometric, saturated)"),
+    ("M2-unb", "M2-unb (geometric, unbounded)"),
 ]
 
 
@@ -64,10 +64,10 @@ def main():
         make_table(df, order, eps_values, atk, "drop_probe", tbl_dir,
                    f"withoutRecon_AUCdrop_{atk}", f"WITHOUT reconstruction (probe) -- AUC drop -- {lbl}")
 
-    make_table(df, order, eps_values, "M3_geo_unb", "token_flip_rate_pct", tbl_dir,
-               "flip_rate_M3_geo_unb", "Token flip rate % -- M3 geo unbounded")
-    make_table(df, order, eps_values, "M3_geo_unb", "emb_disp_pure_mean", tbl_dir,
-               "displacement_M3_geo_unb", "Embedding displacement -- M3 geo unbounded")
+    make_table(df, order, eps_values, "M2-unb", "token_flip_rate_pct", tbl_dir,
+               "flip_rate_M2-unb", "Token flip rate % -- M2-unb (geometric, unbounded)")
+    make_table(df, order, eps_values, "M2-unb", "emb_disp_pure_mean", tbl_dir,
+               "displacement_M2-unb", "Embedding displacement -- M2-unb (geometric, unbounded)")
 
     clean = df.groupby("tokenizer")[["auc_raw_clean", "auc_recon_clean", "auc_probe_clean"]].first().reindex(order)
     clean.to_csv(f"{tbl_dir}/clean_AUC_reference.csv")

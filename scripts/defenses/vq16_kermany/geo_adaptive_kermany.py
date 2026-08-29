@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Two geometric adaptive-attack checks against every VQ-16 defense
-checkpoint, run in one pass per checkpoint (the notebook this was ported
-from reloaded each checkpoint twice, once per attack; this loads once):
+checkpoint, run in one pass per checkpoint (an earlier version reloaded each
+checkpoint twice, once per attack; this loads once):
 
 - geo (pure margin): maximizes the CORRECT margin against the model's own
   current boundary. Fully differentiable, never touches decode() or the
   classifier.
 - geo_bpda (blended): geo margin + BCE-through-decode, live-adaptive
-  counterpart to VQ16.ipynb's cached M3_alpha03 attack.
+  counterpart to the M3_alpha03 blend, generated live against each checkpoint.
 
 IMPORTANT, read before trusting geo's numbers for decoder-realism/combined:
 the pure geo attack's gradient only ever touches encoder+quant_conv+quantize
@@ -49,7 +49,7 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.densenet_classifier import load_densenet, logit as densenet_logit
 from src.tokenizers.vq16 import load_vq16_net
 
-GEO_BPDA_ALPHA = 0.3  # same 30%-geometric/70%-BCE blend VQ16.ipynb's M3_alpha03 uses
+GEO_BPDA_ALPHA = 0.3  # 30% geometric / 70% BCE, matching the M3_alpha03 blend
 
 
 def parse_args():

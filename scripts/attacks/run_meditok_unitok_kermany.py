@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MediTok + UniTok Kermany pipeline: M1/M3 attacks (M0 is tokenizer-free and
+"""MediTok + UniTok Kermany pipeline: M1/M2 attacks (M0 is tokenizer-free and
 shared with the VQ-16 run — see run_vq16_kermany.py), linear probes, and
 evaluation into outputs/<tokenizer>_attack_table.csv.
 
@@ -57,7 +57,7 @@ FIELDS = ["tokenizer", "attack", "eps255", "eps_pixel", "n", "steps",
 def run_tokenizer(tok, densenet, cfg, args, train_items, val_items, test_items, attack_items, loader, device):
     logit_fn = lambda x: densenet_logit(densenet, x)
     attacks = make_attacks(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

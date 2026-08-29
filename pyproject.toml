@@ -1,7 +1,7 @@
 [project]
 name = "tokenizer-adversarial-robustness"
 version = "0.1.0"
-description = "Adversarial robustness of neural image tokenizers placed ahead of a medical-image classifier"
+description = "Adversarial Attacks Expose Path-Dependent Failures in Discrete Medical Image Tokenizers"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"

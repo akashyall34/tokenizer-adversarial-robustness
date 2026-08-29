@@ -37,7 +37,7 @@ from src.tokenizers.meditok_unitok import load_meditok
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B5 into
+    """Alias: wrap EfficientNet-B5 into
     the same load_ckpt(path, device) -> classifier interface this script's
     downstream code (certify_sqs, duck-typed against any callable) expects."""
     net = load_efficientnet(ckpt_path, device)

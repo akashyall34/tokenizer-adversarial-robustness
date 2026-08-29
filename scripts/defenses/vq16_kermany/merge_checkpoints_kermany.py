@@ -16,10 +16,9 @@ inference time to what it was trained on. But this is an assumption the
 merge relies on, not something proven by construction.
 
 The AUC-floor assertion below is a HARD stop, not just a print: a collapsed
-combined checkpoint reportedly reached the final results table as real
-numbers once (all-0.5 AUC rows) because that check used to be a warning
-only. If you hit this assertion, delete the encoder checkpoint for this eps
-and rerun run_advft_kermany.py for it before merging again.
+combined checkpoint (all-0.5 AUC rows) would otherwise pass through silently.
+If you hit this assertion, delete the encoder checkpoint for this eps and
+rerun run_advft_kermany.py for it before merging again.
 
 Usage:
     python scripts/defenses/vq16_kermany/merge_checkpoints_kermany.py --data-root /path/to/chest_xray \

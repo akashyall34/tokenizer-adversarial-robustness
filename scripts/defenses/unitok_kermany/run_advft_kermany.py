@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial fine-tuning of the UniTok encoder against its own M3
+"""Adversarial fine-tuning of the UniTok encoder against its own M2
 boundary attack, on Kermany. Same mechanism as
 scripts/defenses/vq16_kermany/run_advft_kermany.py, adapted to the
 multi-codebook cosine margin (src/defenses/multicodebook/margin.py). Runs
@@ -33,7 +33,7 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.densenet_classifier import load_densenet, logit as densenet_logit
 from src.tokenizers.meditok_unitok import load_unitok
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def parse_args():

@@ -3,7 +3,7 @@
 forward operation (e.g. SQS's mode/argmin voting, or a plain quantizer's
 argmin), so gradient can still flow through an otherwise-real, non-relaxed
 forward pass. Needed for every "does this defense survive an attacker who
-knows it's there" check in this notebook.
+knows it's there" check in this repo.
 
 `batched_pgd_attack` factors out the PGD-with-chunking loop shared by every
 attack variant here (BCE-through-SQS, BCE-through-plain-quantize, geometric

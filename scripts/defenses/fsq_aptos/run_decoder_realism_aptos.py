@@ -39,7 +39,7 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.efficientnet_classifier import EfficientNetClassifier, load_efficientnet
 from src.tokenizers.fsq import FSQTokenizer
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def load_densenet(ckpt_path, device):

@@ -1,37 +1,21 @@
-"""M1 / M3 attacks against FSQ.
+"""M1 / M2 attacks against FSQ (paper attack names).
 
-One margin-loss variant: `margin_loss_anchored` / `make_attacks_anchored`,
-used identically by all three datasets. It anchors the target quantization
-bin to the clean sample once, before the PGD loop, and pushes away from that
-fixed anchor for all steps -- consistent with how VQ-16/MediTok/UniTok's M3
-margin losses already anchor to a fixed clean codebook assignment.
+M1:     supervised task loss through the FSQ reconstruction.
+M2-sat: geometric margin attack, saturating once a scalar dimension flips its bin.
+M2-unb: same objective, unbounded.
+M3_alpha03: non-paper alpha=0.3 blend of the M2 margin with M1's BCE loss.
 
-An earlier, un-anchored variant (recomputing the nearest bin from the
-*current* perturbed latent every step, so the target drifted as the
-perturbation crossed it) is what `VQ16.ipynb`'s embedded Cell FSQ-3
-originally ran for Kermany. `Official-attack-runs.ipynb` -- the real,
-further-along Kermany FSQ notebook (`DATA_ROOT=chest_xray`, DenseNet121;
-despite lacking a "-Kermany" suffix, do not confuse it with the differently
-named `Official-attack-runs-APTOS.ipynb`) -- ran that same un-anchored
-version in its own Cell FSQ-3, then fixed it in Cell FSQ-3b ("FIXED FSQ
-margin (anchored to clean bin) + re-run geo sat/unb", execution_count=33):
-deleted the buggy cached `M3_geo_sat`/`M3_geo_unb` images and regenerated
-them with the anchored margin, real output `"DONE — re-run with anchored
-margin"`. The `fsq_adversarial_bundle.zip`/`fsq_attack_table.csv` this
-notebook produced -- the real, final Kermany FSQ results -- already reflect
-the anchored fix. `run_fsq_kermany.py` matches that: anchored margin, no
-`M3_alpha03` (Kermany's `FSQ_ATTACKS` dict never had that variant -- Cell
-FSQ-3b's fix only touched `M3_geo_sat`/`M3_geo_unb`, matching M1 unchanged).
+FSQ has no learned codebook, so the "margin" is the distance from each scalar
+latent dimension to its nearest rounding boundary. `margin_loss_anchored`
+anchors the target bin to the clean sample once, before the PGD loop, rather
+than recomputing the nearest bin from the perturbed latent every step -- this
+keeps the attack pushing in one consistent direction as the perturbation
+crosses a boundary, matching how the VQ-16 / multi-codebook margin losses
+anchor to a fixed clean assignment.
 
-`Official-attack-runs-APTOS.ipynb`'s own Cell FSQ-3c independently reaches
-the same anchored formula for APTOS, and additionally adds `M3_alpha03`
-(BCE-mixed) -- `run_fsq_aptos.py` uses that.
-
-`ISIC-official-RUN.ipynb`'s own Cell 23 (execution_count=7, real output
-including `"M1 eps0.5: saved 256"` and a real `isic_fsq_bundle.zip`) also
-independently uses the anchored formula plus `M3_alpha03`, `meta.json`'s own
-`margin` field literally reading `"anchored_signed"` -- run_fsq_isic.py
-already matches this exactly.
+`make_attacks_anchored` returns the four attacks above; each run script selects
+the subset it needs (Kermany uses M1 / M2-sat / M2-unb; APTOS and ISIC add
+M3_alpha03).
 
 `logit_fn` is any callable image[B,3,H,W] in [-1,1] -> [B] classifier logit.
 """
@@ -81,6 +65,6 @@ def make_attacks_anchored(tok, logit_fn, device: str, steps: int, lr: float):
     return {
         "M1": lambda x, y, e: M1(x, y, e),
         "M3_alpha03": lambda x, y, e: M3(x, y, e, alpha=0.3, saturate=False),
-        "M3_geo_sat": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=True),
-        "M3_geo_unb": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=False),
+        "M2-sat": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=True),
+        "M2-unb": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=False),
     }

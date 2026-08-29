@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """FSQ APTOS pipeline. Uses the anchored margin loss and the full M0/M1/M3_alpha03/
-M3_geo_sat/M3_geo_unb attack set (see src/attacks/fsq_attacks.py's module docstring
+M2-sat/M2-unb attack set (see src/attacks/fsq_attacks.py's module docstring
 for why this differs from run_fsq_kermany.py's FSQ attacks). M0 is reused from the
 VQ-16 APTOS run (see run_vq16_aptos.py, which saves it under <adv-dir>/m0/).
 
@@ -74,7 +74,7 @@ def main():
     tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
 
     attacks = make_attacks_anchored(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

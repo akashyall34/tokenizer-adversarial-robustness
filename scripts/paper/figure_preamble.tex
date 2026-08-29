@@ -1,0 +1,28 @@
+% Shared preamble for standalone compilation of the paper-figure .tex files.
+% The pgfplots setup and the vizone/viztwo/vizthree/vizmauve colours are lifted
+% verbatim from the paper's preamble (neurips_2026.tex) so a compiled PDF matches
+% the figure as it appears in the paper.
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{nicefrac}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,shapes.geometric,positioning,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+
+\definecolor{vizone}{HTML}{2a78d6}
+\definecolor{viztwo}{HTML}{eb6834}
+\definecolor{vizthree}{HTML}{1baf7a}
+\definecolor{vizmauve}{HTML}{9c5a8c}
+
+% ybar legends otherwise draw two swatches per entry; barlegend collapses to one.
+\pgfplotsset{
+  barlegend/.style={
+    legend image code/.code={\fill[#1] (0cm,-0.1cm) rectangle (0.3cm,0.1cm);},
+  },
+}

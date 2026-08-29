@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VQ-16 Kermany pipeline: build splits, run M0/M1/M3 attacks and save adversarial
+"""VQ-16 Kermany pipeline: build splits, run M0/M1/M2 attacks and save adversarial
 images, train a linear probe, and evaluate raw/reconstruction/probe paths into
 outputs/vq16_attack_table.csv.
 
@@ -68,7 +68,7 @@ def main():
     logit_fn = lambda x: densenet_logit(densenet, x)
     attacks = make_attacks(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
     jobs = [("M0", e) for e in cfg["eps_grid"]] + \
-           [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+           [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

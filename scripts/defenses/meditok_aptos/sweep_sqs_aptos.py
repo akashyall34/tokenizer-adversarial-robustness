@@ -39,7 +39,7 @@ from src.models.efficientnet_classifier import EfficientNetClassifier, load_effi
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B5 into
+    """Alias: wrap EfficientNet-B5 into
     the same load_ckpt(path, device) -> classifier object interface this
     script's downstream code (margin/decoder-realism/certify helpers, all
     written against DenseNet's raw-nn.Module calling convention: net(x) for

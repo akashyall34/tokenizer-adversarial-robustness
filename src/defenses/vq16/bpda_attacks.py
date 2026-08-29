@@ -18,9 +18,9 @@ Three attack families, in increasing order of what they can "see":
   geo-adaptive score for a decoder-side defense is not evidence of real
   robustness -- it's evidence this attack never had line-of-sight into what
   changed. See docs/known_limitations.md.
-- geo_bpda (blended): geo margin + BCE-through-decode, same 30/70 blend
-  VQ16.ipynb's M3_alpha03 attack uses, but generated LIVE against each
-  specific defended checkpoint instead of cached against the undefended
+- geo_bpda (blended): geo margin + BCE-through-decode, the same 30/70
+  geometric/BCE blend as the M3_alpha03 attack, but generated LIVE against
+  each specific defended checkpoint instead of cached against the undefended
   tokenizer. This is the one that actually has line-of-sight into
   decoder-side defenses, because its BCE term routes through decode().
 """

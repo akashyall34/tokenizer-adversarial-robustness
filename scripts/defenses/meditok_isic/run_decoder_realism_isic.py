@@ -38,7 +38,7 @@ from src.models.efficientnet_isic_classifier import EfficientNetB4Classifier, lo
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B4 into
+    """Alias: wrap EfficientNet-B4 into
     the same load_ckpt(path, device) -> classifier object interface this
     script's downstream code (margin/decoder-realism/certify helpers, all
     written against DenseNet's raw-nn.Module calling convention: net(x) for
@@ -54,7 +54,7 @@ def densenet_logit(densenet, x):
 
 from src.tokenizers.meditok_unitok import load_meditok
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def parse_args():

@@ -1,10 +1,9 @@
 """Decoder-realism fine-tuning for MediTok/UniTok. Structurally simpler than
 VQ-16's version (src/defenses/common/decoder_realism.py): trains only on the
 corrupted/cached-adversarial codes as the single "fake" branch (real clean
-image vs. reconstruction-from-corrupted-code), not VQ-16's double clean+
-corrupted branch design -- this is the source notebook's actual recipe, not
-a simplification made while porting. Reuses PatchDiscriminator as-is (same
-architecture, no tokenizer-specific parts).
+image vs. reconstruction-from-corrupted-code), rather than VQ-16's double
+clean+corrupted branch. This single-branch design is deliberate. Reuses
+PatchDiscriminator as-is (same architecture, no tokenizer-specific parts).
 """
 import torch.nn.functional as F
 

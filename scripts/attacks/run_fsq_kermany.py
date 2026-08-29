@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
-"""FSQ Kermany pipeline: M1/M3 attacks, linear probe, and evaluation into
-outputs/fsq_attack_table.csv. M0 (tokenizer-free) is reused from the VQ-16
-run — see run_vq16_kermany.py, which saves it under <adv-dir>/m0/.
+"""FSQ Kermany pipeline: M1 / M2-sat / M2-unb attacks, linear probe, and
+evaluation into outputs/fsq_attack_table.csv. M0 (tokenizer-free) is reused
+from the VQ-16 run -- see run_vq16_kermany.py, which saves it under
+<adv-dir>/m0/.
 
-Uses the anchored margin loss (make_attacks_anchored), matching the real,
-final Kermany results: Official-attack-runs.ipynb ran the un-anchored
-version first (same bug VQ16.ipynb's embedded Cell FSQ-3 has), then fixed it
-in Cell FSQ-3b and regenerated M3_geo_sat/M3_geo_unb -- see
-src/attacks/fsq_attacks.py's module docstring for the full provenance. No
-M3_alpha03 here: Kermany's FSQ_ATTACKS dict never had an alpha-blended
-variant (that's APTOS-only) -- Cell FSQ-3b's fix only touched
-M3_geo_sat/M3_geo_unb.
+Uses the anchored FSQ margin loss (make_attacks_anchored; see
+src/attacks/fsq_attacks.py). The M3_alpha03 blend is not included for Kermany
+(APTOS and ISIC include it).
 
 Usage:
     python scripts/attacks/run_fsq_kermany.py --data-root /path/to/chest_xray \
@@ -81,7 +77,7 @@ def main():
 
     logit_fn = lambda x: densenet_logit(densenet, x)
     attacks = make_attacks_anchored(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

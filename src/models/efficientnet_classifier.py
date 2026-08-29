@@ -78,11 +78,11 @@ def make_features_fn(net: nn.Module, device: str, eff_size: int = EFF_SIZE):
 
 class EfficientNetClassifier:
     """Wraps EfficientNet-B5 into the same two-method interface DenseNet121's
-    raw nn.Module happens to expose for free (`net(x)` -> logit-shaped output,
-    `net.features(x)` -> perceptual features) -- same trick the source
-    notebooks use ('aliased as densenet_logit/densenet') so shared
-    margin/decoder-realism/certify code written against DenseNet's calling
-    convention runs completely unchanged against APTOS."""
+    raw nn.Module exposes for free (`net(x)` -> logit-shaped output,
+    `net.features(x)` -> perceptual features), so the shared
+    margin / decoder-realism / certify code written against DenseNet's
+    calling convention runs unchanged against APTOS. Callers alias it as
+    `densenet` / `densenet_logit` for exactly this reason."""
 
     def __init__(self, net: nn.Module, device: str, pos_grades=(2, 3, 4), num_grades: int = 5, eff_size: int = EFF_SIZE):
         self.net = net

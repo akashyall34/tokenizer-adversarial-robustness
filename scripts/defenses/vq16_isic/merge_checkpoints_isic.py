@@ -16,10 +16,9 @@ inference time to what it was trained on. But this is an assumption the
 merge relies on, not something proven by construction.
 
 The AUC-floor assertion below is a HARD stop, not just a print: a collapsed
-combined checkpoint reportedly reached the final results table as real
-numbers once (all-0.5 AUC rows) because that check used to be a warning
-only. If you hit this assertion, delete the encoder checkpoint for this eps
-and rerun run_advft_isic.py for it before merging again.
+combined checkpoint (all-0.5 AUC rows) would otherwise pass through silently.
+If you hit this assertion, delete the encoder checkpoint for this eps and
+rerun run_advft_isic.py for it before merging again.
 
 Usage:
     python scripts/defenses/vq16_isic/merge_checkpoints_isic.py --data-root /path/to/isic2019 \
@@ -50,7 +49,7 @@ from src.tokenizers.vq16 import load_vq16_net
 
 
 def load_densenet(ckpt_path, device):
-    """Alias, same trick the source notebook uses: wrap EfficientNet-B4 into
+    """Alias: wrap EfficientNet-B4 into
     the same load_ckpt(path, device) -> classifier object interface this
     script's downstream code (margin/decoder-realism/certify helpers, all
     written against DenseNet's raw-nn.Module calling convention: net(x) for

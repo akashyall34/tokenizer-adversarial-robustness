@@ -64,7 +64,7 @@ class FSQTokenizer:
         return idx.reshape(idx.shape[0], -1)
 
     def reconstruct(self, x: torch.Tensor) -> torch.Tensor:
-        """encode -> quantize -> decode. Dodges a CUDA issue in the repo's own encode()."""
+        """encode -> quantize -> decode. works around a CUDA issue in the upstream encode()."""
         z = self.net.enc(x)
         quant_t, _ = self.net.quantize_t(z)
         return self.net.decode(quant_t).clamp(-1, 1)

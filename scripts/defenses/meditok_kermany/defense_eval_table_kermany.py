@@ -48,7 +48,7 @@ from src.eval.sqs_sweep import batched
 from src.models.densenet_classifier import load_densenet, logit as densenet_logit
 from src.tokenizers.meditok_unitok import load_meditok
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 DEFENSES = ["none", "pixel_noise", "best_sqs", "advft", "advft+best_sqs", "decoder_realism", "combined"]
 FIELDS = ["defense", "finetune_eps255", "attack", "eval_eps255", "eval_eps_pixel", "n",
           "auc_recon_clean", "auc_recon_adv", "drop_recon", "asr_recon",

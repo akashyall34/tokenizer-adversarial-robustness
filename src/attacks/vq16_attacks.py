@@ -1,9 +1,13 @@
-"""M0 / M1 / M3 attacks against the VQ-16 pipeline.
+"""M0 / M1 / M2 attacks against the VQ-16 pipeline (paper attack names).
 
-M0: raw image -> classifier, tokenizer-free baseline.
-M1: image -> VQ-16 reconstruction -> classifier (attacks through reconstruction).
-M3: geometric margin attack on the pre-quantization latent (pushes the nearest
-    codebook entry to flip), optionally mixed with the M1 BCE loss via alpha.
+M0:     raw image -> classifier, tokenizer-free baseline.
+M1:     image -> VQ-16 reconstruction -> classifier (attacks through reconstruction).
+M2-sat: geometric margin attack on the pre-quantization latent, saturating once a
+        token flips.
+M2-unb: same objective, unbounded (keeps pushing past the boundary).
+M3_alpha03: not used in the paper -- an auxiliary alpha=0.3 blend of the M2
+        margin objective with the M1 BCE loss. All three share the `M3`
+        helper below (M2 == alpha=1.0).
 
 `logit_fn` is any callable image[B,3,H,W] in [-1,1] -> [B] classifier logit,
 so the same attack code works for DenseNet121 (Kermany) and the EfficientNet-B5
@@ -62,6 +66,6 @@ def make_attacks(tok, logit_fn, device: str, steps: int, lr: float):
         "M0": lambda x, y, e: M0(x, y, e),
         "M1": lambda x, y, e: M1(x, y, e),
         "M3_alpha03": lambda x, y, e: M3(x, y, e, alpha=0.3, saturate=False),
-        "M3_geo_sat": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=True),
-        "M3_geo_unb": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=False),
+        "M2-sat": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=True),
+        "M2-unb": lambda x, y, e: M3(x, y, e, alpha=1.0, saturate=False),
     }

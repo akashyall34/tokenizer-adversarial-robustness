@@ -38,7 +38,7 @@ from src.eval.sel_report_split import stratified_half_split
 from src.models.densenet_classifier import load_densenet, logit as densenet_logit
 from src.tokenizers.fsq import FSQTokenizer
 
-ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"]
+ATTACKS_TO_DEFEND = ["M1", "M3_alpha03", "M2-sat", "M2-unb"]
 
 
 def load_densenet(ckpt_path, device):

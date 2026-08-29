@@ -57,7 +57,7 @@ def parse_args():
 
 def run_tokenizer(tok, logit_fn, cfg, args, train_items, val_items, test_items, attack_items, loader, device):
     attacks = make_attacks(tok, logit_fn, device, cfg["steps"], cfg["attack_lr"])
-    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M3_geo_sat", "M3_geo_unb"] for e in cfg["eps_grid"]]
+    jobs = [(a, e) for a in ["M1", "M3_alpha03", "M2-sat", "M2-unb"] for e in cfg["eps_grid"]]
 
     seed_everything(cfg["seed"])
     for attack, eps in jobs:

@@ -17,7 +17,11 @@ checkpoints/
 *.pth
 *.ckpt
 *.safetensors
-results/
+# Pipeline run outputs are not committed, EXCEPT the small vendored CSVs that
+# scripts/paper/ needs to regenerate the paper's figures and tables.
+results/*
+!results/paper_inputs/
+results/paper_figures/
 *.zip
 third_party/
 
@@ -31,6 +35,11 @@ mlruns/
 
 # Env / secrets
 .env
+
+# Editor / assistant local state
+.claude/
+.vscode/
+.idea/
 
 # OS
 .DS_Store
