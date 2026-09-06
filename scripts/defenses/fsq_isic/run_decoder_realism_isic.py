@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Decoder-realism fine-tuning for FSQ on ISIC: GAN (hinge loss) + perceptual
 (EfficientNet-B5 feature-matching) + L1, decoder-only. Reuses
-src/defenses/common/decoder_realism.py directly -- FSQ's decode path is a
-single net.dec(q) call on the SPATIAL quantized tensor (same shape as
+src/defenses/common/decoder_realism.py directly; FSQ's decode path is a
+single net.dec(q) call on the spatial quantized tensor (same shape as
 VQ-16's model.decode(q)), so nothing tokenizer-specific needs reimplementing
 here, unlike MediTok/UniTok's two-call decode path.
 
-Corrupted codes come from the cached .pt images (encoded through the FROZEN
+Corrupted codes come from the cached .pt images (encoded through the frozen
 encoder), not a synthetic flip simulation.
 
 Usage:
@@ -102,7 +102,7 @@ def main():
     Xc_sel, Yc_sel = load_xy(sel_items, cfg["img_size"], device)
 
     tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
-    print("decoder-realism (robust): submodule trainability check --")
+    print("decoder-realism (robust): submodule trainability check:")
     freeze_non_decoder(tok.net, decoder_attrs=("dec",), verbose=True)
     disc = PatchDiscriminator().to(device)
     opt_g = torch.optim.Adam([p for p in tok.net.parameters() if p.requires_grad], lr=args.lr, betas=(0.5, 0.999))
@@ -130,7 +130,7 @@ def main():
     n = quant_adv_sel.shape[0]
     print(f"decoder-realism (robust): training on {n} cached-adversarial code pairs (eps={eps255})")
 
-    decode_fn = lambda m, q: m.dec(q)  # noqa: E731 -- FSQ's decode is a single net.dec(q) call
+    decode_fn = lambda m, q: m.dec(q)  # noqa: E731; FSQ's decode is a single net.dec(q) call
 
     epoch_log = []
     first_delta, patience_ctr, prev_loss = None, 0, None
@@ -172,7 +172,7 @@ def main():
             else:
                 patience_ctr = 0
             if epoch + 1 >= args.early_stop_min_epochs and patience_ctr >= args.early_stop_patience:
-                print(f"  early stop at epoch {epoch} -- robust_recon_loss plateaued")
+                print(f"  early stop at epoch {epoch}; robust_recon_loss plateaued")
                 break
         prev_loss = row["robust_recon_loss"]
 
@@ -184,7 +184,7 @@ def main():
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, orig_tok.reconstruct(drift_x)).cpu().numpy())))
         auc_dec = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, tok.reconstruct(drift_x)).cpu().numpy())))
     drop = auc_orig - auc_dec
-    print(f"clean recon AUC (REPORT_ITEMS) -- original={auc_orig:.4f}  decoder-realism={auc_dec:.4f}  "
+    print(f"clean recon AUC (REPORT_ITEMS): original={auc_orig:.4f}  decoder-realism={auc_dec:.4f}  "
           f"(drop={drop:.4f}){'  *** LARGE DROP ***' if drop > 0.03 else ''}")
 
 

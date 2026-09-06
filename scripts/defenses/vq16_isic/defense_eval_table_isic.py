@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """Part 3: the main reported defense table. Seven conditions, using the
-parameters SELECTED by sweep_sqs_isic.py, evaluated on REPORT_ITEMS (the
+parameters selected by sweep_sqs_isic.py, evaluated on REPORT_ITEMS (the
 half of the fixed attack subset none of the sweeps/hyperparameter selection
-ever saw) across the FULL eps grid -- not just the worst-case eps used for
+ever saw) across the full eps grid; not just the worst-case eps used for
 selection, so the eps=8 row is a genuinely independent number, not a
 restatement of the selection criterion.
 
 Conditions:
   none              undefended baseline (should reproduce vq16_attack_table.csv's recon/probe columns)
-  pixel_noise       original tokenizer + noise at PIXEL INPUT (RQ2's named comparison point)
+  pixel_noise       original tokenizer + noise at pixel input (RQ2's named comparison point)
   best_sqs          original tokenizer + whichever latent-space SQS variant won the sweep
   advft             fine-tuned tokenizer alone (per-eps255 checkpoint)
   advft+best_sqs    fine-tuned tokenizer + best_sqs
   decoder_realism   decoder-realism-robust checkpoint alone (single checkpoint, not per-eps)
   combined          advft(worst-case eps) + decoder-realism-robust merged (single checkpoint)
 
-STATIC NUMBERS ONLY -- BPDA is what decides which of these is real. SQS's
-static recovery here collapses to ~0.0 AUC under BPDA (bpda_sqs_isic.py),
-so a high static number for decoder_realism/combined isn't sufficient either
--- cross-reference bpda_alone_isic.py before trusting any row here as a
-genuine robustness claim.
+These are static numbers only; BPDA decides which of them is real. SQS's
+static recovery here collapses to ~0.0 AUC under BPDA (bpda_sqs_isic.py), and a
+high static number for decoder_realism or combined is not sufficient either, so
+cross-reference bpda_alone_isic.py before trusting any row here as a robustness
+claim.
 
-M0 is excluded -- it never routes through the tokenizer, so no tokenizer-side
+M0 is excluded; it never routes through the tokenizer, so no tokenizer-side
 defense can affect it (see vq16_attack_table.csv for M0's own numbers).
 
 Usage:
@@ -93,7 +93,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     return p.parse_args()
 
@@ -134,7 +134,7 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
     winner_path = os.path.join(args.out_dir, "vq16_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_isic.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_isic.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
     pixel_sigma, pixel_K = winner["pixel_noise_sigma"], winner["pixel_noise_K"]

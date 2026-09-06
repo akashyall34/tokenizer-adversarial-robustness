@@ -1,10 +1,10 @@
-"""Pixel-input noise baseline for MediTok/UniTok -- the RQ2 comparison point,
-same role as src/defenses/vq16/pixel_noise.py. Same K-pass majority-vote
-mechanism as flat SQS, noise at the pixel input instead of the
-pre-quantization latent. Unlike VQ-16 (which gets token indices directly from
-a single net.encode(x) call), MediTok/UniTok have no single-call encode-to-
-tokens path, so this re-derives indices the same way flat SQS does: encode,
-split into per-codebook chunks, cosine-nearest-neighbor per chunk.
+"""Pixel-input noise baseline for MediTok/UniTok, the RQ2 comparison point, same
+role as src/defenses/vq16/pixel_noise.py. Same K-pass majority-vote mechanism as
+flat SQS, with noise at the pixel input instead of the pre-quantization latent.
+VQ-16 gets token indices directly from a single net.encode(x) call; MediTok and
+UniTok have no single-call encode-to-tokens path, so this re-derives indices the
+way flat SQS does: encode, split into per-codebook chunks, cosine nearest
+neighbor per chunk.
 """
 import torch
 import torch.nn.functional as F

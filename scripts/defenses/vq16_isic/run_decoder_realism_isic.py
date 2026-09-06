@@ -7,7 +7,7 @@ src/defenses/common/decoder_realism.py for the mechanism and why this is a
 complementary lever to encoder fine-tuning (run_advft_isic.py), not a
 replacement for it.
 
-Trained on CLEAN images only, using cached codes -- no new attack is
+Trained on clean images only, using cached codes; no new attack is
 generated here. Precomputes every code once up front (encoder is frozen for
 the whole run, so codes never go stale) instead of re-encoding every epoch.
 
@@ -76,14 +76,14 @@ def parse_args():
     p.add_argument("--max-epochs", type=int, default=40)
     p.add_argument("--batch", type=int, default=8, help="roughly doubles per-batch memory vs. a clean-only "
                                                           "loop (two decode + two densenet.features + three "
-                                                          "disc calls) -- halve first if you hit OOM")
+                                                          "disc calls); halve first if you hit OOM")
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--disc-lr", type=float, default=1e-4)
     p.add_argument("--adv-loss-weight", type=float, default=0.1)
     p.add_argument("--perceptual-loss-weight", type=float, default=1.0)
     p.add_argument("--recon-loss-weight", type=float, default=1.0)
     p.add_argument("--robust-loss-weight", type=float, default=1.0,
-                    help="weight on the corrupted-code branch -- same magnitude as the clean branch "
+                    help="weight on the corrupted-code branch; same magnitude as the clean branch "
                          "so the decoder can't just optimize the easier clean objective and ignore the corrupted one")
     p.add_argument("--early-stop-min-epochs", type=int, default=3)
     p.add_argument("--early-stop-patience", type=int, default=2)
@@ -117,7 +117,7 @@ def main():
     Xc_sel, Yc_sel = load_xy(sel_items, cfg["img_size"], device)
 
     model = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
-    print("decoder-realism (robust): submodule trainability check --")
+    print("decoder-realism (robust): submodule trainability check:")
     freeze_non_decoder(model, verbose=True)
     disc = PatchDiscriminator().to(device)
     opt_g = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr, betas=(0.5, 0.999))
@@ -177,7 +177,7 @@ def main():
         pd.DataFrame(epoch_log).to_csv(log_path, index=False)
         torch.save(model.state_dict(), ckpt_path)  # checkpoint every epoch
 
-        # early stopping on robust_recon_loss specifically -- NOT g_loss/d_loss, which oscillate
+        # early stopping on robust_recon_loss specifically; not g_loss/d_loss, which oscillate
         # around an adversarial equilibrium by construction and don't have a meaningful plateau
         if prev_loss is not None:
             delta = prev_loss - row["robust_recon_loss"]
@@ -188,15 +188,15 @@ def main():
             else:
                 patience_ctr = 0
             if epoch + 1 >= args.early_stop_min_epochs and patience_ctr >= args.early_stop_patience:
-                print(f"  early stop at epoch {epoch} -- robust_recon_loss plateaued "
+                print(f"  early stop at epoch {epoch}; robust_recon_loss plateaued "
                       f"(this epoch's delta={delta:.4f} vs first-epoch delta={first_delta:.4f})")
                 break
         prev_loss = row["robust_recon_loss"]
 
-    assert os.path.getsize(ckpt_path) > 0, f"torch.save produced a 0-byte file at {ckpt_path} -- write failed"
+    assert os.path.getsize(ckpt_path) > 0, f"torch.save produced a 0-byte file at {ckpt_path}; write failed"
     print(f"saved -> {ckpt_path}")
     print("Check the log: g_loss/d_loss should settle into a stable back-and-forth (D neither collapsing "
-          "to ~0 nor blowing out) -- early stopping above is based on robust_recon_loss only, so a "
+          "to ~0 nor blowing out); early stopping above is based on robust_recon_loss only, so a "
           "still-unstable GAN loss at the stopping point is worth a manual look even if reconstruction "
           "loss itself plateaued.")
 
@@ -205,9 +205,9 @@ def main():
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(orig_net, drift_x)).cpu().numpy())))
         auc_dec = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(model, drift_x)).cpu().numpy())))
     drop = auc_orig - auc_dec
-    print(f"clean recon AUC (REPORT_ITEMS, held-out) -- original={auc_orig:.4f}  "
+    print(f"clean recon AUC (REPORT_ITEMS, held-out): original={auc_orig:.4f}  "
           f"decoder-realism-robust={auc_dec:.4f}  (drop={drop:.4f})"
-          f"{'  *** LARGE DROP -- possible collapse ***' if drop > 0.03 else ''}")
+          f"{'  *** LARGE DROP; possible collapse ***' if drop > 0.03 else ''}")
 
 
 if __name__ == "__main__":

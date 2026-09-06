@@ -24,9 +24,9 @@ image and the wrong one on the perturbed image.*
 
 ## Attack names
 
-The repo uses the paper's attack names everywhere -- source, configs, the
+The repo uses the paper's attack names everywhere: source, configs, the
 `attack` column of every CSV, and the `results/adv_images/<tok>/<attack>/`
-directory names:
+directory names.
 
 | id | paper | what it is |
 |----|-------|------------|
@@ -34,7 +34,7 @@ directory names:
 | `M1` | M1 | tokenizer-mediated supervised attack (task loss through encoder/quantizer/decoder) |
 | `M2-sat` | M2-sat | boundary-directed geometric attack, saturating (bounded) once a token flips |
 | `M2-unb` | M2-unb | boundary-directed geometric attack, unbounded (keeps displacing past the boundary) |
-| `M3_alpha03` | -- | **not used in the paper**: an auxiliary alpha=0.3 blend of the M2 margin objective with M1's BCE loss, retained in the pipeline for completeness |
+| `M3_alpha03` | n/a | **not used in the paper**: an auxiliary alpha=0.3 blend of the M2 margin objective with M1's BCE loss, retained in the pipeline for completeness |
 
 ## Structure
 
@@ -43,22 +43,26 @@ src/
   attacks/            attack implementations (per tokenizer): vq16_attacks.py,
                        meditok_unitok_attacks.py, fsq_attacks.py, pgd.py
   defenses/
-    common/           generic mechanisms: BPDA, checkpoint merging, CW-L2 attack,
-                       decoder-realism training loop -- not tied to any one tokenizer
+    common/           generic mechanisms, not tied to any one tokenizer: BPDA,
+                       checkpoint merging, CW-L2 attack, decoder-realism training loop
     vq16/             VQ-16-specific margin/SQS/certification math
     multicodebook/    MediTok/UniTok-specific margin/SQS math (shared codebook geometry)
-    fsq/              FSQ-specific margin/SQS/certification math (no codebook --
+    fsq/              FSQ-specific margin/SQS/certification math (no codebook;
                        per-dimension scalar quantization, its own geometry throughout)
   tokenizers/         tokenizer loading + reconstruct wrappers (vq16.py, fsq.py,
                        meditok_unitok.py)
   datasets/           dataset loading + splits (kermany.py, aptos.py, isic.py)
   models/             downstream classifier wrappers (DenseNet121, EfficientNet-B4/B5)
-  eval/               metrics, probes, bootstrap significance, SEL/REPORT split
+  eval/               metrics, probes, bootstrap significance, SEL/REPORT split,
+                       generative_fidelity.py (LPIPS/PSNR/SSIM/rFID grid)
+  generative/         generative-downstream: fidelity.py (metrics),
+                       llavamed.py (frozen LLaVA-Med + MedITok vision tower),
+                       vqa_attack.py (M2 on the VLM's tower), vqa_scoring.py
 scripts/
   attacks/            one orchestration script per (tokenizer, dataset) pair
   defenses/           one directory per (tokenizer, dataset) pair, each holding
                        the full advft/decoder-realism/merge/SQS-sweep/BPDA/geo/CW-L2/
-                       certification/final-table pipeline for that pair -- run via
+                       certification/final-table pipeline for that pair. Run via
                        run_pipeline.py, not by hand. 4 tokenizers x 3 datasets = 12:
                          vq16_kermany/     vq16_aptos/     vq16_isic/
                          meditok_kermany/  meditok_aptos/  meditok_isic/
@@ -67,6 +71,10 @@ scripts/
                        (MediTok and UniTok share one attack-generation pass in
                        scripts/attacks/run_meditok_unitok_{dataset}.py; their
                        defense pipelines are separate directories.)
+  generative/         generative-downstream: run_fidelity.py (LPIPS/PSNR/SSIM/rFID
+                       of every tokenizer's decode: clean, under attack, and
+                       under each defense) and run_vqa_redteam.py (LLaVA-Med
+                       MedITok VQA attack), each --dataset <ds>
   diagnostics/        one-off verification/measurement scripts, not part of the main pipeline
   paper/             regenerate the workshop paper's figures/tables from the run CSVs
                        (build_paper_figures.py + check_paper_figures.py)
@@ -79,7 +87,7 @@ docs/                 data acquisition, checkpoint layout, known limitations
 
 **Coverage** (tokenizer x dataset): all four tokenizers (VQ-16, MediTok,
 UniTok, FSQ) have a full attack + defense pipeline on all three datasets
-(Kermany, APTOS, ISIC) -- 12/12. Attack generation stays combined per
+(Kermany, APTOS, ISIC), 12 of 12. Attack generation stays combined per
 tokenizer family: `scripts/attacks/run_meditok_unitok_{dataset}.py` produces
 both MediTok's and UniTok's adversarial images in one pass, while the defense
 pipelines are split into separate `meditok_{dataset}/` and `unitok_{dataset}/`
@@ -114,18 +122,34 @@ See `docs/checkpoints.md` for the layout.
 ## Reproducing results
 
 Run `scripts/run_pipeline.py --stage <name>` rather than invoking individual
-scripts by hand -- it runs each stage's scripts in the order they actually
-depend on each other (e.g. `advft` and `decoder_realism` must both finish
-before `merge`). See `python scripts/run_pipeline.py --help` for the list of
-stages. Split indices aren't pre-checked-in files; each script deterministically
-re-derives the same split from the dataset's config (`seed`, `val_frac`, ...),
-so nothing needs to ship separately for the split to be reproducible.
+scripts by hand. It runs each stage's scripts in the order they depend on each
+other (for example, `advft` and `decoder_realism` must both finish before
+`merge`). See `python scripts/run_pipeline.py --help` for the list of stages.
+Split indices are not checked in; each script re-derives the same split
+deterministically from the dataset's config (`seed`, `val_frac`, and so on), so
+nothing needs to ship separately for the split to be reproducible.
+
+### Generative downstream
+
+Two stage families, run after the matching `attacks-<dataset>` and
+`<tok>-defenses-<dataset>` stages have produced the cached adversarial images and
+defense checkpoints:
+
+```bash
+# reconstruction / generative fidelity: LPIPS/PSNR/SSIM/rFID of every tokenizer's
+# decode: clean baseline, under M2-sat/M2-unb, and under each defense
+python scripts/run_pipeline.py --stage generative-fidelity-kermany   # (also -aptos, -isic)
+
+# LLaVA-Med (MedITok) VQA red-team: needs the VLM weights (docs/checkpoints.md)
+# and the [vqa] dependency extra in its own env; CUDA only
+python scripts/run_pipeline.py --stage vqa-redteam
+```
 
 ### Paper figures and tables
 
 Every data figure and results table in the workshop paper is regenerated from
-the run CSVs by `scripts/paper/` -- per float a `.csv` of the numbers, the
-`.tex` (complete `tikzpicture` / `tabular`, scaffolding lifted verbatim from the
+the run CSVs by `scripts/paper/`. Per float it writes a `.csv` of the numbers,
+the `.tex` (complete `tikzpicture` / `tabular`, with scaffolding copied from the
 paper), and that `.tex` compiled to `.pdf` with `pdflatex` (`--no-pdf` skips it):
 
 ```bash
@@ -136,7 +160,7 @@ python scripts/paper/check_paper_figures.py     # recompute headline cells, comp
 The input CSVs are vendored under `results/paper_inputs/` and committed.
 `check_paper_figures.py` recomputes the headline cells of each float against the
 numbers printed in the paper (all match to <= 0.001 AUC). See
-`scripts/paper/README.md` for the float coverage and the two provenance notes.
+`scripts/paper/README.md` for the float coverage and the reproduction notes.
 
 ## Citation
 

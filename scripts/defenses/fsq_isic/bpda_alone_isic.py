@@ -51,7 +51,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
     p.add_argument("--steps", type=int, default=50)
@@ -108,7 +108,7 @@ def main():
     rows = []
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"fsq_advft_eps{eps255}_isic.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_isic.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_isic.py first"
         tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()
@@ -124,7 +124,7 @@ def main():
         (decoder_ckpt_path, "decoder-realism-robust ALONE, no SQS"),
         (combined_ckpt_path, "combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         for eps255 in cfg["eps_grid"]:
             tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
             tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))

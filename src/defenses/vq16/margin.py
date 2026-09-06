@@ -1,12 +1,12 @@
 """Corrected (L2-normalized) VQ-16 margin computation, used for adversarial
-fine-tuning. This is deliberately separate from src/attacks/vq16_attacks.py's
-margin_loss(), which computes the margin on unnormalized vectors -- see
-docs/known_limitations.md for why the two differ and why both exist.
+fine-tuning. It is kept separate from `margin_loss()` in
+src/attacks/vq16_attacks.py, which computes the margin on unnormalized vectors;
+docs/known_limitations.md explains why the two differ and why both exist.
 
-VQ-16's `quantize` module L2-normalizes both the latent and the codebook
-before its nearest-neighbor lookup; the unnormalized proxy agrees with that
-real assignment only 51.93% of the time (measured directly against
-`model.encode()`, see scripts/diagnostics/diagnose_vq16_margin_bug.py).
+VQ-16's `quantize` module L2-normalizes both the latent and the codebook before
+its nearest-neighbor lookup. The unnormalized proxy agrees with that real
+assignment only 51.93% of the time, measured directly against `model.encode()`
+(see scripts/diagnostics/diagnose_vq16_margin_bug.py).
 """
 import torch
 import torch.nn.functional as F
@@ -39,9 +39,9 @@ def clean_top1(model, x: torch.Tensor) -> torch.Tensor:
 
 
 def margin(model, x: torch.Tensor, k1: torch.Tensor, saturate: bool) -> torch.Tensor:
-    """m = d(z,k1) - d(z,rival); <0 intact, >=0 flipped -- same sign
-    convention as src/attacks/vq16_attacks.py's margin_loss, computed in the
-    correct normalized space."""
+    """m = d(z,k1) - d(z,rival); negative means intact, non-negative means
+    flipped. Same sign convention as `margin_loss` in
+    src/attacks/vq16_attacks.py, but computed in the correct normalized space."""
     z = prequant(model, x)
     E = model.quantize.embedding.weight
     d = l2_dist_matrix(z, E)  # [B,N,V]
@@ -69,11 +69,11 @@ def freeze_non_encoder(model, verbose: bool = False) -> None:
 
 
 def plain_quantize(model, h: torch.Tensor) -> torch.Tensor:
-    """h: (B,C,Hp,Wp) pre-quant latent -> z_q via the real (deterministic,
-    no noise/voting) nearest-neighbor lookup. Used by the BPDA straight-
-    through wrapper for "no SQS" adaptive-attack checks -- the encoder/
-    decoder pipeline is otherwise fully differentiable except for this
-    discrete argmin."""
+    """Maps an (B,C,Hp,Wp) pre-quant latent to z_q via the real, deterministic
+    nearest-neighbor lookup (no noise, no voting). Used by the BPDA
+    straight-through wrapper for "no SQS" adaptive-attack checks; the encoder and
+    decoder pipeline is otherwise fully differentiable apart from this discrete
+    argmin."""
     B, C, Hp, Wp = h.shape
     z = h.permute(0, 2, 3, 1).reshape(B, Hp * Wp, C)
     E = model.quantize.embedding.weight

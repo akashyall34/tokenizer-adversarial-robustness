@@ -1,5 +1,5 @@
-"""Randomized-smoothing certified robustness for FSQ's winning SQS variant --
-same role and same margin-adaptive-radius caveat as every other tokenizer's
+"""Randomized-smoothing certified robustness for FSQ's winning SQS variant.
+Same role and same margin-adaptive-radius caveat as every other tokenizer's
 certify.py.
 """
 import numpy as np

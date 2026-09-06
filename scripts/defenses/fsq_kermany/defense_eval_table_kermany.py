@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Part 3: the main reported defense table for FSQ on Kermany. Seven
-conditions, using the parameters SELECTED by sweep_sqs_kermany.py, evaluated
-on REPORT_ITEMS across the FULL eps grid. Same role as
+conditions, using the parameters selected by sweep_sqs_kermany.py, evaluated
+on REPORT_ITEMS across the full eps grid. Same role as
 scripts/defenses/fsq_aptos/defense_eval_table_aptos.py.
 
 Conditions:
   none              undefended baseline
-  pixel_noise       original tokenizer + noise at PIXEL INPUT (RQ2's named comparison point)
+  pixel_noise       original tokenizer + noise at pixel input (RQ2's named comparison point)
   best_sqs          original tokenizer + whichever latent-space SQS variant won the sweep
   advft             fine-tuned tokenizer alone (per-eps255 checkpoint)
   advft+best_sqs    fine-tuned tokenizer + best_sqs
   decoder_realism   decoder-realism-robust checkpoint alone (single checkpoint, not per-eps)
   combined          advft(worst-case eps) + decoder-realism-robust merged (single checkpoint)
 
-STATIC NUMBERS ONLY -- BPDA is what decides which of these is real.
+Static numbers only; BPDA is what decides which of these is real.
 
 Usage:
     python scripts/defenses/fsq_kermany/defense_eval_table_kermany.py \
@@ -76,7 +76,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/kermany_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_kermany.py was run with (default: worst-case/largest in eps_grid)")
     return p.parse_args()
 
@@ -117,7 +117,7 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
     winner_path = os.path.join(args.out_dir, "fsq_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_kermany.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_kermany.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
     pixel_sigma, pixel_K = winner["pixel_noise_sigma"], winner["pixel_noise_K"]

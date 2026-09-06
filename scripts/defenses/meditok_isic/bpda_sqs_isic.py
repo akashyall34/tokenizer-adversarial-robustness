@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BPDA adaptive-attack check against the standalone SQS winner AND the
+"""BPDA adaptive-attack check against the standalone SQS winner and the
 headline advft+best_sqs condition, for both MediTok and UniTok. Same role as
 scripts/defenses/meditok_aptos/bpda_sqs_aptos.py.
 
@@ -61,7 +61,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--attack-batch", type=int, default=4,
-                    help="overrides the config's attack_batch (8, sized for VQ-16) -- "
+                    help="overrides the config's attack_batch (8, sized for VQ-16); "
                          "MediTok runs heavier: decoder + B4 classifier")
     p.add_argument("--advft-eps255", type=int, default=None, help="default: worst-case/largest in eps_grid")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
@@ -86,7 +86,7 @@ def run_bpda_check(tok, label, densenet, x, y, y_np, sqs_name, sqs_params, eps25
 
 def run_one(tok_name, load_fresh, args, cfg, densenet, x, y, y_np, advft_eps, sweep_eps, bs, device):
     winner_path = os.path.join(args.out_dir, f"{tok_name}_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_isic.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_isic.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
 
@@ -97,11 +97,11 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, x, y, y_np, advft_eps, sw
     torch.cuda.empty_cache()
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_advft_eps{advft_eps}_isic.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_isic.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_isic.py first"
     ft_tok = load_fresh()
     ft_tok.net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_tok.net.eval()
-    run_bpda_check(ft_tok, f"{tok_name} advft(eps{advft_eps})+best_sqs -- the actual headline condition",
+    run_bpda_check(ft_tok, f"{tok_name} advft(eps{advft_eps})+best_sqs; the actual headline condition",
                     densenet, x, y, y_np, sqs_name, sqs_params, sweep_eps, args.steps, args.lr, bs, device)
     del ft_tok
     torch.cuda.empty_cache()
@@ -133,7 +133,7 @@ def main():
     run_one(tok_name, load_fresh, args, cfg, densenet, x, y, y_np, advft_eps, sweep_eps, bs, device)
 
 print("If BPDA-adaptive AUC collapses back toward the undefended/static-attack AUC for EITHER "
-      "tokenizer, the static recovery number was NOT real robustness -- report that honestly, "
+      "tokenizer, the static recovery number was NOT real robustness; report that honestly, "
       "especially if it happens for the advft+best_sqs headline condition specifically.")
 
 

@@ -1,22 +1,22 @@
-"""Decoder-realism fine-tuning: makes a tokenizer's decoder produce plausible,
-in-domain reconstructions regardless of which codes it's handed, so
+"""Decoder-realism fine-tuning makes a tokenizer's decoder produce plausible,
+in-domain reconstructions regardless of which codes it is handed, so
 reconstruction quality holds up even when an attack has corrupted the codes.
 
-This is a different, complementary lever from encoder fine-tuning (e.g.
-src/defenses/vq16/margin.py): that defends the *boundary* (harder to flip a
-token), this defends the *decode* (stay close to the natural image manifold
-even once tokens have already flipped). Trained on clean images plus the
-already-generated cached adversarial codes -- no new attack is run here.
+This is a complementary lever to encoder fine-tuning (src/defenses/vq16/margin.py).
+Encoder fine-tuning defends the boundary, making a token harder to flip. This
+defends the decode, staying close to the natural image manifold even once tokens
+have flipped. It trains on clean images plus the cached adversarial codes and
+runs no new attack.
 
-Not tokenizer-specific: `decode_fn(model, q) -> image` is whatever the
-tokenizer's real decode path is (VQ-16: a single model.decode(q) call;
-MediTok/UniTok: post_quant_proj(q) then decoder(...), two separate calls,
-no combined method) -- see src/defenses/vq16/margin.py's `reconstruct` for
-VQ-16's decode_fn, or an equivalent free function for a multi-codebook
-tokenizer. `decoder_attrs` is whichever submodule names stay trainable
-during this run (VQ-16: decoder + post_quant_conv; MediTok/UniTok: decoder +
-post_quant_proj) -- everything else (encoder, quant projection, codebook)
-stays frozen, same discipline regardless of tokenizer.
+Not tokenizer-specific. `decode_fn(model, q)` is the tokenizer's real decode
+path: a single `model.decode(q)` call for VQ-16, or `post_quant_proj(q)` then
+`decoder(...)` for MediTok/UniTok, which have no combined method. See
+`src/defenses/vq16/margin.py`'s `reconstruct` for VQ-16's `decode_fn`, or an
+equivalent free function for a multi-codebook tokenizer. `decoder_attrs` names
+the submodules that stay trainable during the run (decoder + post_quant_conv for
+VQ-16; decoder + post_quant_proj for MediTok/UniTok). Everything else (encoder,
+quant projection, codebook) stays frozen, the same discipline for every
+tokenizer.
 """
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,8 +37,8 @@ def freeze_non_decoder(model, decoder_attrs=("decoder", "post_quant_conv"), verb
 
 
 class PatchDiscriminator(nn.Module):
-    """Small PatchGAN-style discriminator -- real-vs-reconstructed at the
-    patch level, same family HiFiC/VQGAN use."""
+    """Small PatchGAN-style discriminator: real vs reconstructed at the patch
+    level, the same family HiFiC and VQGAN use."""
 
     def __init__(self, in_ch: int = 3, base: int = 64):
         super().__init__()
@@ -66,7 +66,7 @@ def train_step(model, decode_fn, disc, opt_g, opt_d, densenet, q_clean, q_corrup
                 adv_loss_weight: float, perceptual_loss_weight: float,
                 recon_loss_weight: float, robust_loss_weight: float):
     """One (discriminator step, generator step) pair. xb is the true clean
-    image -- the target for both the clean-code and corrupted-code branches."""
+    image, the target for both the clean-code and corrupted-code branches."""
     # discriminator: sees clean recon AND corrupted recon as fake
     rec = decode_fn(model, q_clean)
     rec_corrupt = decode_fn(model, q_corrupt)

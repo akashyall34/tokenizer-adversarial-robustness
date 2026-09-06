@@ -1,0 +1,5 @@
+tokenizer,attack,n_real,n_fake,rfid_pooled
+unitok,M1,256,1280,31.113
+unitok,M3_alpha03,256,1280,33.951
+unitok,M2-sat,256,1280,23.141
+unitok,M2-unb,256,1280,62.55

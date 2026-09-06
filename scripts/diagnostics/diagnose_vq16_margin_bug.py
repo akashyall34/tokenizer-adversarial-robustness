@@ -96,7 +96,7 @@ def main():
         rows.append(dict(attack=attack, eps255=args.eps255, flip_rate=round(fr, 4), true_rival_hit_rate=round(hr, 4)))
 
     pd.DataFrame(rows).to_csv(csv_path, index=False)
-    print(f"\nwrote -> {csv_path} -- cite this table directly in the paper's limitations section.")
+    print(f"\nwrote -> {csv_path}; cite this table directly in the paper's limitations section.")
 
 
 if __name__ == "__main__":

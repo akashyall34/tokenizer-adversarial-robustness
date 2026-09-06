@@ -14,8 +14,8 @@ from src.defenses.multicodebook.margin import decode_only
 def train_step(tok, disc, opt_g, opt_d, densenet_features_fn, z_adv, xb_clean,
                 perceptual_loss_weight: float = 0.1, adv_loss_weight: float = 0.01):
     """One (discriminator step, generator step) pair. z_adv is the cached
-    adversarial code (already quantized), xb_clean is the TRUE clean image --
-    the only reconstruction target and the only "real" sample the
+    adversarial code (already quantized), xb_clean is the true clean
+    image, the only reconstruction target and the only "real" sample the
     discriminator ever sees."""
     idx = tok.assign_indices(z_adv)
     zq = tok.quantizer.idx_to_f(idx)

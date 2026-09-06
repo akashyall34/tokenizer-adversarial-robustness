@@ -2,8 +2,9 @@
 """Sanity check for src/defenses/vq16/margin.py: does the L2-normalized proxy's
 predicted nearest code actually match what the real VQ-16 quantizer assigns?
 Run this before trusting any fine-tuning or margin-adaptive-noise result that
-depends on src/defenses/vq16/margin.py -- if this doesn't read ~100%, something about the
-real quantizer's internals has changed and nothing downstream should be trusted.
+depends on src/defenses/vq16/margin.py. If it does not read ~100%, something
+about the real quantizer's internals has changed and nothing downstream should
+be trusted.
 
 Usage:
     python scripts/diagnostics/verify_vq16_margin_fix.py --data-root /path/to/chest_xray \
@@ -56,10 +57,10 @@ def main():
     agreement = (real_idx == proxy_idx).float().mean().item()
     print(f"normalized proxy vs. real quantizer token agreement (n={len(items)}): {agreement * 100:.2f}%")
     if agreement < 0.999:
-        print(f"*** STILL MISMATCHED -- {(1 - agreement) * 100:.2f}% disagreement remains. "
+        print(f"*** STILL MISMATCHED: {(1 - agreement) * 100:.2f}% disagreement remains. "
               f"Do not trust the fine-tuning loop or margin-adaptive noise until this is resolved. ***")
         sys.exit(1)
-    print("agreement is effectively 1.0 -- src/defenses/vq16/margin.py measures the real boundary. Safe to proceed.")
+    print("agreement is effectively 1.0; src/defenses/vq16/margin.py measures the real boundary. Safe to proceed.")
 
 
 if __name__ == "__main__":

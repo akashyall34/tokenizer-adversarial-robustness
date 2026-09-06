@@ -4,7 +4,7 @@ attack, never seen (cached or live) by any defense in this repo, against
 MediTok advft (per-eps), decoder-realism-robust, and combined. Same
 role as scripts/defenses/vq16_kermany/cw_l2_heldout_kermany.py.
 
-First calibrates the L2 budget against each UNDEFENDED tokenizer -- pick
+First calibrates the L2 budget against each undefended tokenizer; pick
 --eps-l2 from that printout, or accept the default (the largest grid value)
 if you haven't calibrated yet.
 
@@ -48,7 +48,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/kermany_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_kermany.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--eps-l2", type=float, default=None, help="default: calibrate and use the largest grid value")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
@@ -103,7 +103,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items, 
         row = dict(label=label, eps_l2=eps_l2, n=len(y_np),
                    clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg), cw_auc=auc(y_np, cw_lg),
                    cw_asr=asr(clean_lg, cw_lg, y_np))
-        print(f"--- {label} -- HELD-OUT CW-L2 attack (n={len(y_np)}, eps_l2={eps_l2}) ---")
+        print(f"--- {label}: HELD-OUT CW-L2 attack (n={len(y_np)}, eps_l2={eps_l2}) ---")
         print(f"clean AUC   : {row['clean_auc']:.4f}")
         print(f"CW-L2 AUC   : {row['cw_auc']:.4f}   (loss/norm this checkpoint was NEVER trained against)")
         print(f"CW-L2 ASR   : {row['cw_asr']:.1f}%\n")
@@ -112,7 +112,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items, 
     rows = []
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_advft_eps{eps255}.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_kermany.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_kermany.py first"
         tok = load_fresh()
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()
@@ -126,7 +126,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items, 
         (f"{tok_name}_combined_eps{combined_eps}.pt", f"{tok_name} combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
         ckpt_path = os.path.join(args.ckpt_dir, ckpt_name)
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         tok = load_fresh()
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()

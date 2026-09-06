@@ -2,9 +2,9 @@
 to one binary logit (referable-DR vs not) via logsumexp over grade groups.
 
 Checkpoint is a bare state_dict (torchvision efficientnet_b5, 5-class head),
-fine-tuned at 456px with standard ImageNet normalization -- the checkpoint
-itself doesn't record input size/normalization, so both are asserted here
-via `load_densenet`-style convention rather than read from the checkpoint.
+fine-tuned at 456px with standard ImageNet normalization. The checkpoint does
+not record input size or normalization, so both are fixed here by convention
+(as in `load_densenet`) rather than read from it.
 """
 import torch
 import torch.nn as nn
@@ -61,13 +61,12 @@ def make_binary_logit_fn(net: nn.Module, device: str, pos_grades=(2, 3, 4), num_
 
 
 def make_features_fn(net: nn.Module, device: str, eff_size: int = EFF_SIZE):
-    """Returns features_fn(x): [B,3,256,256] in [-1,1] (tokenizer space) ->
-    B5's conv-feature map (pre-classifier-head), for perceptual-loss use in
-    decoder-realism training -- the EfficientNet-B5 analogue of DenseNet's
-    own `.features(x)`, but with the required resize+ImageNet-normalize
-    preprocessing folded in (DenseNet's `.features` needs no such step,
-    since its checkpoint's own input convention matches tokenizer space
-    directly at 256px)."""
+    """Returns features_fn(x): [B,3,256,256] in [-1,1] (tokenizer space) to B5's
+    conv-feature map (pre-classifier-head), for the perceptual loss in
+    decoder-realism training. This is the EfficientNet-B5 analogue of DenseNet's
+    `.features(x)`, with the required resize and ImageNet-normalize preprocessing
+    folded in. DenseNet's `.features` needs no such step, since its checkpoint's
+    input convention already matches tokenizer space at 256px."""
     to_effnet_space = make_to_effnet_space(device, eff_size)
 
     def features_fn(x: torch.Tensor) -> torch.Tensor:

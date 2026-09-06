@@ -1,28 +1,27 @@
-"""Adaptive-attack constructors for VQ-16: an attacker who knows the defense
-is there and optimizes against it directly, as opposed to every recovery
-number elsewhere in this repo (which measures recovery against attacks
-generated on the UNDEFENDED tokenizer -- an attacker with no knowledge the
-defense exists). A real robustness claim needs the adaptive version.
+"""Adaptive-attack constructors for VQ-16: an attacker who knows the defense is
+there and optimizes against it directly. Every recovery number elsewhere in this
+repo measures recovery against attacks generated on the undefended tokenizer, an
+attacker with no knowledge the defense exists; a real robustness claim needs the
+adaptive version.
 
-Three attack families, in increasing order of what they can "see":
+Three attack families, in increasing order of what they can see:
 
-- BCE-through-SQS / BCE-through-plain-quantize: routes through decode() and
-  the classifier, so it can exert pressure on decoder-side defenses. Needs
-  BPDA (src/defenses/common/bpda.py) because the quantize step is non-differentiable.
-- geo (pure margin): maximizes the CORRECT (normalized) margin against the
-  model's own current boundary. Fully differentiable end to end -- never
-  touches decode() or the classifier at all. This is a real blind spot, not
-  a simplification: a defense that only changed the decoder (decoder-realism,
-  or the combined checkpoint) is invisible to this attack, because this
-  attack's gradient never has a path through the thing that changed. A high
-  geo-adaptive score for a decoder-side defense is not evidence of real
-  robustness -- it's evidence this attack never had line-of-sight into what
-  changed. See docs/known_limitations.md.
-- geo_bpda (blended): geo margin + BCE-through-decode, the same 30/70
-  geometric/BCE blend as the M3_alpha03 attack, but generated LIVE against
-  each specific defended checkpoint instead of cached against the undefended
-  tokenizer. This is the one that actually has line-of-sight into
-  decoder-side defenses, because its BCE term routes through decode().
+- BCE-through-SQS / BCE-through-plain-quantize: routes through decode() and the
+  classifier, so it can exert pressure on decoder-side defenses. Needs BPDA
+  (src/defenses/common/bpda.py) because the quantize step is non-differentiable.
+- geo (pure margin): maximizes the correct (normalized) margin against the
+  model's current boundary. Fully differentiable end to end, and never touches
+  decode() or the classifier. This is a real blind spot, not a simplification: a
+  defense that only changed the decoder (decoder-realism, or the combined
+  checkpoint) is invisible to this attack, because the attack's gradient has no
+  path through the thing that changed. A high geo-adaptive score for a
+  decoder-side defense is not evidence of robustness, only evidence that this
+  attack never saw what changed. See docs/known_limitations.md.
+- geo_bpda (blended): geo margin plus BCE-through-decode, the same 30/70
+  geometric/BCE blend as the M3_alpha03 attack, but generated live against each
+  defended checkpoint rather than cached against the undefended tokenizer. Its
+  BCE term routes through decode(), so this is the one that can see decoder-side
+  defenses.
 """
 import torch.nn.functional as F
 
@@ -55,9 +54,9 @@ def bpda_sqs_attack(model, densenet, x, y, eps, sqs_name, sqs_params, steps, lr,
 
 
 def bpda_plain_attack(model, densenet, x, y, eps, steps, lr, bs, device):
-    """BCE-through-plain-(undefended)-quantize -- used for the 'ALONE, no
-    SQS' checks (does advft / decoder-realism / combined survive adaptive
-    attack on their own, without SQS in the pipeline at all)."""
+    """BCE through plain (undefended) quantize, for the "alone, no SQS" checks:
+    whether advft, decoder-realism, or combined survive adaptive attack on their
+    own, with no SQS in the pipeline."""
     def make_loss_fn(xb, yb):
         def loss_fn(xa):
             rec = plain_reconstruct_bpda(model, xa)
@@ -68,9 +67,9 @@ def bpda_plain_attack(model, densenet, x, y, eps, steps, lr, bs, device):
 
 
 def geo_adaptive_attack(model, x, eps, steps, lr, bs, device):
-    """Maximizes the CORRECT margin against the model's own current boundary.
-    No BPDA needed -- the margin loss lives entirely on the continuous
-    pre-quantization latent, never touching the discrete quantize step."""
+    """Maximizes the correct margin against the model's current boundary. No BPDA
+    needed: the margin loss lives entirely on the continuous pre-quantization
+    latent and never touches the discrete quantize step."""
     def make_loss_fn(xb, yb):
         k1 = clean_top1(model, xb)  # clean_top1 is already @torch.no_grad() internally
 
@@ -83,9 +82,9 @@ def geo_adaptive_attack(model, x, eps, steps, lr, bs, device):
 
 def geo_bpda_attack(model, densenet, x, y, eps, alpha, steps, lr, bs, device):
     """Blends the geo margin term with BCE-through-decode (needs BPDA, since
-    decode requires a real discrete code) -- the live-adaptive counterpart to
-    M3_alpha03's cached alpha-blend, generated fresh against each specific
-    defended checkpoint."""
+    decode requires a real discrete code). The live-adaptive counterpart to
+    M3_alpha03's cached alpha-blend, generated fresh against each defended
+    checkpoint."""
     def make_loss_fn(xb, yb):
         k1 = clean_top1(model, xb)
 

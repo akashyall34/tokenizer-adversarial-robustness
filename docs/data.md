@@ -18,9 +18,9 @@ data/kermany/
 ## APTOS 2019 (diabetic retinopathy)
 
 Source: the pre-split Kaggle dataset mirror `mariaherrerot/aptos2019` (not the
-raw competition dataset -- this mirror ships its own train/val/test split,
-which `src/datasets/aptos.py` reads directly). Requires `KAGGLE_USERNAME` /
-`KAGGLE_KEY` env vars (a Kaggle account + API token); download via:
+raw competition dataset). This mirror ships its own train/val/test split, which
+`src/datasets/aptos.py` reads directly. Requires `KAGGLE_USERNAME` /
+`KAGGLE_KEY` env vars (a Kaggle account and API token); download via:
 
 ```bash
 kaggle datasets download mariaherrerot/aptos2019 -p data/aptos --unzip
@@ -44,7 +44,7 @@ Labels are binarized to referable-DR vs not (grades {2,3,4} = positive) by
 Source: the Kaggle mirror `andrewmvd/isic-2019` (~9GB), 8-class ground truth
 (MEL, NV, BCC, AK, BKL, DF, VASC, SCC) collapsed to malignant
 ({MEL,BCC,AK,SCC}) vs benign ({NV,BKL,DF,VASC}) by `src/datasets/isic.py`.
-Unlike Kermany/APTOS there is no provided split -- a single seeded 70/10/20
+Unlike Kermany and APTOS there is no provided split, so a single seeded 70/10/20
 train/val/test shuffle is used. Requires `KAGGLE_USERNAME` / `KAGGLE_KEY` env
 vars; download via:
 
@@ -62,6 +62,6 @@ data/isic/
 
 No split indices are checked into the repo. Every script re-derives the same
 split deterministically from the dataset's config (`seed`, and for
-Kermany/ISIC also `val_frac`/`test_frac`) via `build_splits()` in
-`src/datasets/{kermany,aptos,isic}.py` -- given the same raw data directory
+Kermany and ISIC also `val_frac`/`test_frac`) via `build_splits()` in
+`src/datasets/{kermany,aptos,isic}.py`. Given the same raw data directory
 and config, the split is reproducible without shipping separate index files.

@@ -1,10 +1,11 @@
 """M1 / M2 attacks against the multi-codebook (cosine similarity) tokenizers,
-MediTok and UniTok (paper attack names; M2-sat/M2-unb are the geometric margin
-attack, saturating / unbounded). M3_alpha03 is an auxiliary alpha=0.3 blend
-not used in the paper. M0 (tokenizer-free) is shared across all tokenizers --
-see src/attacks/vq16_attacks.py.
+MediTok and UniTok (paper attack names; M2-sat and M2-unb are the geometric
+margin attack, saturating and unbounded). M3_alpha03 is an auxiliary alpha=0.3
+blend not used in the paper. M0 (tokenizer-free) is shared across all tokenizers
+and lives in src/attacks/vq16_attacks.py.
 
-`logit_fn` is any callable image[B,3,H,W] in [-1,1] -> [B] classifier logit.
+`logit_fn` is any callable mapping image[B,3,H,W] in [-1,1] to a [B] classifier
+logit.
 """
 import torch
 import torch.nn.functional as F

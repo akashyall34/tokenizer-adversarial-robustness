@@ -2,7 +2,7 @@
 """Paired bootstrap significance test on clean-recon AUC across the four VQ-16
 APTOS conditions (original, advft, decoder-realism, combined). A point
 estimate alone ("0.9570 -> 0.9638") doesn't say whether a gain is real at
-this sample size -- see src/eval/bootstrap.py.
+this sample size; see src/eval/bootstrap.py.
 
 Requires run_advft_aptos.py, run_decoder_realism_aptos.py, and
 merge_checkpoints_aptos.py to have already produced their checkpoints.
@@ -74,7 +74,7 @@ def main():
     decoder_ckpt_path = os.path.join(args.ckpt_dir, "vq16_decoder_realism_robust_aptos.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"vq16_combined_eps{advft_eps}_aptos.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path, combined_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training/merge script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training/merge script first"
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir)

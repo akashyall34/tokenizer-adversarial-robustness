@@ -1,9 +1,8 @@
-"""Adaptive-attack constructors for FSQ -- same role and same three attack
+"""Adaptive-attack constructors for FSQ: same role and same three attack
 families as every other tokenizer's bpda_attacks.py, adapted to FSQ's
 per-dimension scalar quantization. See src/defenses/vq16/bpda_attacks.py's
-docstring for why the pure geometric attack is blind to decoder-side
-defenses and why the blended geo+BCE attack is the one with actual
-line-of-sight into them.
+docstring for why the pure geometric attack is blind to decoder-side defenses
+and why the blended geo+BCE attack can see them.
 """
 import torch
 import torch.nn.functional as F
@@ -16,8 +15,8 @@ from src.tokenizers.fsq import fsq_bound
 
 
 def _plain_quantize(z: torch.Tensor) -> torch.Tensor:
-    """Real, deterministic (no noise/voting) per-dim round-to-nearest-level
-    -- the undefended quantize step, for 'no SQS' adaptive-attack checks."""
+    """Real, deterministic per-dim round-to-nearest-level (no noise, no voting),
+    the undefended quantize step, for the "no SQS" adaptive-attack checks."""
     levels = fsq_bound(z).round()
     return levels / half_width(z.device)
 

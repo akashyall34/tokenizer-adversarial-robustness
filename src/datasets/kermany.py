@@ -97,9 +97,9 @@ class KermanyDS(Dataset):
 
 
 def load_xy(items, img_size: int, device: str):
-    """Loads a fixed item list directly into one [N,3,H,W] tensor pair, rather
-    than a DataLoader -- used where the whole set is small and needs to stay
-    resident (e.g. a fixed 128-image SEL/REPORT slice reused across many
+    """Loads a fixed item list directly into one [N,3,H,W] tensor pair rather
+    than a DataLoader, for cases where the whole set is small and needs to stay
+    resident (for example a fixed 128-image SEL/REPORT slice reused across many
     defense-training epochs)."""
     xs, ys = [], []
     for path, lbl in items:

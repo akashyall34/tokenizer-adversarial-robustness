@@ -35,7 +35,7 @@ def score_config(recon_fn, densenet_logit_fn, Xc_sel, Yc_sel, adv_dir: str, toke
 
 def score_config_logit_ensemble(predict_fn, Xc_sel, Yc_sel, adv_dir: str, tokenizer_name: str,
                                  sweep_eps, sel_idx, device: str, bs: int):
-    """predict_fn(x) -> logit directly (not a reconstructed image) -- for a
+    """predict_fn(x) returns a logit directly, not a reconstructed image, for a
     mechanism that averages K logits rather than voting on a token first."""
     clean_lg = batched(lambda x: predict_fn(x).cpu().numpy(), Xc_sel, device, bs)
     auc_clean = auc(Yc_sel, clean_lg)

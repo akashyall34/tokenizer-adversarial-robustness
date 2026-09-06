@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""BPDA adaptive-attack check against the standalone SQS winner AND the
-headline advft+best_sqs condition -- an attacker who knows SQS is there and
+"""BPDA adaptive-attack check against the standalone SQS winner and the
+headline advft+best_sqs condition; an attacker who knows SQS is there and
 optimizes against it directly, as opposed to every recovery number in
 sweep_sqs_kermany.py (which measures recovery against attacks generated on
-the UNDEFENDED tokenizer). Checking only the weaker standalone config would
+the undefended tokenizer). Checking only the weaker standalone config would
 leave the condition actually claimed as "best" without adaptive verification.
 
 Run on REPORT_ITEMS (held out from hyperparameter selection) at the
@@ -78,7 +78,7 @@ def main():
     sweep_eps = cfg["eps_grid"][-1]
 
     winner_path = os.path.join(args.out_dir, "vq16_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_kermany.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_kermany.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
 
@@ -100,15 +100,15 @@ def main():
                     sweep_eps, args.steps, args.lr, bs, device)
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"vq16_advft_eps{advft_eps}.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_kermany.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_kermany.py first"
     ft_net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
     ft_net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_net.eval()
-    run_bpda_check(ft_net, f"advft(eps{advft_eps})+best_sqs -- the actual headline condition",
+    run_bpda_check(ft_net, f"advft(eps{advft_eps})+best_sqs; the actual headline condition",
                     densenet, x, y, y_np, sqs_name, sqs_params, sweep_eps, args.steps, args.lr, bs, device)
 
     print("If BPDA-adaptive AUC collapses back toward the undefended/static-attack AUC for EITHER "
-          "model, the static recovery number was NOT real robustness -- report that honestly, "
+          "model, the static recovery number was NOT real robustness; report that honestly, "
           "especially if it happens for the advft+best_sqs headline condition specifically.")
 
 

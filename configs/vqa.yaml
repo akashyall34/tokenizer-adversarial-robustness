@@ -1,0 +1,9 @@
+# LLaVA-Med (MedITok) VQA red-team -- scripts/generative/run_vqa_redteam.py
+seed: 42
+val_frac: 0.1
+n_per_dataset: 20        # balanced across classes (10 + 10)
+eps_grid: [2, 4, 8]      # x/255 on the internal [-1,1] input
+attack_steps: 50         # same Adam/steps/lr as every other attack in the repo
+attack_lr: 0.01
+# Questions per image: modality, body region (Kermany/APTOS only), and a
+# clinical question; the exact strings live in src/generative/llavamed.QUESTIONS.

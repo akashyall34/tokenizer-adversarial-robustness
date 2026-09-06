@@ -1,0 +1,5 @@
+tokenizer,attack,n_real,n_fake,rfid_pooled
+meditok,M1,256,1280,27.033
+meditok,M3_alpha03,256,1280,29.676
+meditok,M2-sat,256,1280,21.384
+meditok,M2-unb,256,1280,74.259

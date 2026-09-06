@@ -59,7 +59,7 @@ CLEAN_AUC_FLOOR = 0.85
 K_SWEEP = 16
 SIGMA_GRID = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]  # same starting grid as VQ-16's
                                                                      # (both cosine/unit-normalized
-                                                                     # spaces) -- measured below, not
+                                                                     # spaces); measured below, not
                                                                      # assumed equal.
 K_GRID = [4, 8, 16, 32]
 SPATIAL_WEIGHT_GRID = [0.4, 0.5, 0.6, 0.7, 0.8]
@@ -78,7 +78,7 @@ def parse_args():
     p.add_argument("--adv-dir", default="results/adv_images")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--attack-batch", type=int, default=4,
-                    help="overrides the config's attack_batch (8, sized for VQ-16) -- "
+                    help="overrides the config's attack_batch (8, sized for VQ-16); "
                          "MediTok runs heavier: decoder + B4 classifier")
     p.add_argument("--sweep-eps", type=int, default=None, help="default: worst-case/largest in eps_grid")
     return p.parse_args()
@@ -88,7 +88,7 @@ def pick_best(df, score_col, clean_col="auc_clean"):
     ok = df[df[clean_col] >= CLEAN_AUC_FLOOR]
     if len(ok):
         return ok.loc[ok[score_col].idxmax()]
-    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- picking best clean-preserving config instead ***")
+    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}); picking best clean-preserving config instead ***")
     return df.loc[df[clean_col].idxmax()]
 
 
@@ -108,10 +108,10 @@ def sweep_one(tok_name, load_fresh, args, cfg, densenet, sel_items, sel_idx, swe
             - orig_tok.reconstruct(Xc_sel[:16])).abs().max().item()
     print(f"{tok_name}: sqs_reconstruct(sigma=0) vs. real reconstruct: max abs diff = {diff:.6f}")
     if diff > 1e-2:
-        print("*** MISMATCH exceeds the expected float32-decoder noise floor -- a REAL logic error. "
+        print("*** MISMATCH exceeds the expected float32-decoder noise floor; a REAL logic error. "
               "Needs fixing before trusting any SQS number. ***")
     else:
-        print("within the expected float32-through-decoder noise floor -- safe to proceed.")
+        print("within the expected float32-through-decoder noise floor; safe to proceed.")
 
     # --- pixel-noise baseline ---
     csv_pixel = os.path.join(args.out_dir, f"{tok_name}_pixel_noise_sweep.csv")
@@ -239,7 +239,7 @@ def sweep_one(tok_name, load_fresh, args, cfg, densenet, sel_items, sel_idx, swe
     print("wrote ->", csv_logit)
     print(logit_df.to_string(index=False))
     print(f"{tok_name}: compare auc_adv_M1/auc_adv_M3_alpha03 here against flat/spatial/adaptive's same "
-          f"columns -- if still ~0.0, the dense/redundant attack pattern survives per-sample logit "
+          f"columns; if still ~0.0, the dense/redundant attack pattern survives per-sample logit "
           f"averaging too, not just per-token voting.\n")
 
     # --- pick the one standalone winner for advft+SQS and the BPDA check ---
@@ -252,7 +252,7 @@ def sweep_one(tok_name, load_fresh, args, cfg, densenet, sel_items, sel_idx, swe
     ok = summary[summary.auc_clean >= CLEAN_AUC_FLOOR]
     pool = ok if len(ok) else summary
     if not len(ok):
-        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- "
+        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}); "
               f"picking the best clean-preserving variant instead ***")
     best_name = pool.loc[pool.mean_auc_adv.idxmax(), "variant"] if len(ok) else pool.loc[pool.auc_clean.idxmax(), "variant"]
     print(f"\n{tok_name} WINNER: {best_name}")

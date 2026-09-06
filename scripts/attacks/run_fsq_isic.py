@@ -10,7 +10,7 @@ This pair reuses the tokenizer-agnostic FSQ attack code
 run_meditok_unitok_isic.py.
 
 attack_batch defaults to 4 here (not the config's 8, which is for the VQ-16
-run) -- same reasoning as run_meditok_unitok_isic.py's override: FSQ's own
+run). Same reasoning as run_meditok_unitok_isic.py's override: FSQ's own
 decoder is more memory-hungry per image than VQ-16's at this resolution.
 
 Usage:

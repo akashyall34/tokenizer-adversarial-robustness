@@ -1,26 +1,24 @@
-"""BPDA (Backward Pass Differentiable Approximation, Athalye/Carlini/Wagner
-2018): substitutes identity for the backward pass through a non-differentiable
-forward operation (e.g. SQS's mode/argmin voting, or a plain quantizer's
-argmin), so gradient can still flow through an otherwise-real, non-relaxed
-forward pass. Needed for every "does this defense survive an attacker who
-knows it's there" check in this repo.
+"""BPDA (Backward Pass Differentiable Approximation, Athalye, Carlini, Wagner
+2018) substitutes the identity for the backward pass through a non-differentiable
+forward operation (SQS's mode/argmin voting, or a plain quantizer's argmin), so
+gradient still flows through an otherwise real, non-relaxed forward pass. Every
+"does this defense survive an attacker who knows it is there" check in this repo
+needs it.
 
-`batched_pgd_attack` factors out the PGD-with-chunking loop shared by every
-attack variant here (BCE-through-SQS, BCE-through-plain-quantize, geometric
-margin, and the blended geo+BCE attack) -- they differ only in what loss
-they optimize per step, not in the optimization loop itself. Chunking is
-purely a memory concern: each image's delta/Adam state is independent of
-every other image in the batch (no cross-image interaction anywhere in the
-loss or model), so splitting into chunks changes nothing about the per-image
-result, only peak memory.
+`batched_pgd_attack` factors out the chunked PGD loop shared by every attack
+variant here (BCE-through-SQS, BCE-through-plain-quantize, geometric margin, and
+the blended geo+BCE attack). They differ only in the per-step loss, not the
+optimization loop. Chunking is a memory concern only: each image's delta and
+Adam state are independent of every other image in the batch, so splitting into
+chunks changes peak memory but no per-image result.
 """
 import torch
 
 
 class _StraightThrough(torch.autograd.Function):
-    """Forward: the real, non-differentiable quantize_fn(h) (fresh randomness
-    on every call, if the underlying mechanism uses any). Backward: identity
-    -- gradient passes straight through h unchanged."""
+    """Forward: the real, non-differentiable quantize_fn(h), with fresh
+    randomness on every call if the underlying mechanism uses any. Backward:
+    identity, so gradient passes straight through h unchanged."""
 
     @staticmethod
     def forward(ctx, h, quantize_fn):
@@ -33,7 +31,7 @@ class _StraightThrough(torch.autograd.Function):
 
 
 def straight_through_quantize(h: torch.Tensor, quantize_fn) -> torch.Tensor:
-    """quantize_fn: h -> z_q (not a tuple -- unwrap (idx, z_q) callables before passing in)."""
+    """quantize_fn maps h to z_q (not a tuple; unwrap (idx, z_q) callables first)."""
     return _StraightThrough.apply(h, quantize_fn)
 
 

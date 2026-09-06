@@ -2,20 +2,20 @@
 """Merges one adversarial-fine-tuned (encoder-side) checkpoint with the
 decoder-realism (decoder-side) checkpoint into a single combined defense.
 Valid as a state-dict merge, not a joint training run, because the two runs
-touch disjoint parameter subsets and never move the frozen codebook -- see
+touch disjoint parameter subsets and never move the frozen codebook; see
 src/defenses/common/checkpoint_merge.py and the caveat in this script's docstring below.
 
-Caveat, stated plainly: this is not provably identical to a hypothetical
-joint training run. The decoder-realism run trained against the ORIGINAL
-encoder's clean-image codes, not the advft-fine-tuned encoder's codes. In
-practice this should be a non-issue -- advft only widens the margin around
+Caveat: this is not provably identical to a hypothetical joint training
+run. The decoder-realism run trained against the original encoder's
+clean-image codes, not the advft-fine-tuned encoder's codes. In
+practice this should be a non-issue; advft only widens the margin around
 each clean image's existing top-1 code, it doesn't change which code clean
 images get assigned to (confirmed by both checkpoints' independent clean-AUC
-drift checks) -- so the merged decoder should see ~identical quant indices at
+drift checks); so the merged decoder should see ~identical quant indices at
 inference time to what it was trained on. But this is an assumption the
 merge relies on, not something proven by construction.
 
-The AUC-floor assertion below is a HARD stop, not just a print: a collapsed
+The AUC-floor assertion below is a hard stop, not just a print: a collapsed
 combined checkpoint (all-0.5 AUC rows) would otherwise pass through silently.
 If you hit this assertion, delete the encoder checkpoint for this eps and
 rerun run_advft_kermany.py for it before merging again.
@@ -48,7 +48,7 @@ from src.tokenizers.vq16 import load_vq16_net
 
 ENCODER_PREFIXES = ("encoder.", "quant_conv.")
 DECODER_PREFIXES = ("decoder.", "post_quant_conv.")
-AUC_FLOOR = 0.55  # near chance for this binary task -- a checkpoint at/below this is broken, not a real result
+AUC_FLOOR = 0.55  # near chance for this binary task; a checkpoint at/below this is broken, not a real result
 
 
 def parse_args():
@@ -75,7 +75,7 @@ def main():
     decoder_ckpt_path = os.path.join(args.ckpt_dir, "vq16_decoder_realism_robust.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"vq16_combined_eps{advft_eps}.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training script first"
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir, cfg["seed"], cfg["val_frac"])
@@ -105,11 +105,11 @@ def main():
     with torch.no_grad():
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(orig_net, drift_x)).cpu().numpy())))
         auc_comb = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(combined, drift_x)).cpu().numpy())))
-    print(f"clean recon AUC -- original={auc_orig:.4f}  combined(encoder+decoder)={auc_comb:.4f}  "
-          f"(drop={auc_orig - auc_comb:.4f}){'  *** LARGE DROP -- possible collapse ***' if (auc_orig - auc_comb) > 0.03 else ''}")
+    print(f"clean recon AUC: original={auc_orig:.4f}  combined(encoder+decoder)={auc_comb:.4f}  "
+          f"(drop={auc_orig - auc_comb:.4f}){'  *** LARGE DROP; possible collapse ***' if (auc_orig - auc_comb) > 0.03 else ''}")
 
     assert auc_comb > AUC_FLOOR, (
-        f"combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance -- this is a broken "
+        f"combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance; this is a broken "
         f"checkpoint, not a real defense result. Do not let it into the final results table. Delete "
         f"{advft_ckpt_path} and {combined_ckpt_path}, then rerun run_advft_kermany.py for this eps.")
     print(f"\nDONE. combined encoder+decoder model ready at {combined_ckpt_path} "

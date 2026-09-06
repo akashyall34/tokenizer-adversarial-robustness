@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BPDA adaptive-attack check against the standalone FSQ SQS winner AND the
+"""BPDA adaptive-attack check against the standalone FSQ SQS winner and the
 headline advft+best_sqs condition. Same role as
 scripts/defenses/vq16_aptos/bpda_sqs_aptos.py.
 
@@ -80,7 +80,7 @@ def main():
     sweep_eps = cfg["eps_grid"][-1]
 
     winner_path = os.path.join(args.out_dir, "fsq_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_aptos.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_aptos.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
 
@@ -102,15 +102,15 @@ def main():
                     sweep_eps, args.steps, args.lr, bs, device)
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"fsq_advft_eps{advft_eps}_aptos.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_aptos.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_aptos.py first"
     ft_tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
     ft_tok.net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_tok.net.eval()
-    run_bpda_check(ft_tok, f"advft(eps{advft_eps})+best_sqs -- the actual headline condition",
+    run_bpda_check(ft_tok, f"advft(eps{advft_eps})+best_sqs; the actual headline condition",
                     densenet, x, y, y_np, sqs_name, sqs_params, sweep_eps, args.steps, args.lr, bs, device)
 
     print("If BPDA-adaptive AUC collapses back toward the undefended/static-attack AUC for EITHER "
-          "model, the static recovery number was NOT real robustness -- report that honestly, "
+          "model, the static recovery number was NOT real robustness; report that honestly, "
           "especially if it happens for the advft+best_sqs headline condition specifically.")
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Decoder-realism fine-tuning for UniTok on Kermany: single-branch
 recipe (real clean image vs. reconstruction-from-corrupted-code as the only
-"fake" the discriminator sees) -- see
+"fake" the discriminator sees); see
 src/defenses/multicodebook/decoder_realism.py for why this differs from
 VQ-16's double clean+corrupted branch design. Runs unitok in one pass.
 
@@ -77,7 +77,7 @@ def train_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items
     eps255 = args.eps255 if args.eps255 is not None else cfg["eps_grid"][-1]
     orig_tok = load_fresh()
     tok = load_fresh()
-    print(f"{tok_name} decoder-realism: submodule trainability check --")
+    print(f"{tok_name} decoder-realism: submodule trainability check:")
     freeze_non_decoder(tok, verbose=True)
     disc = PatchDiscriminator().to(device)
     opt_g = torch.optim.Adam([p for p in tok.net.parameters() if p.requires_grad], lr=args.lr, betas=(0.5, 0.999))
@@ -134,7 +134,7 @@ def train_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items
             else:
                 patience_ctr = 0
             if epoch + 1 >= args.early_stop_min_epochs and patience_ctr >= args.early_stop_patience:
-                print(f"  {tok_name}: early stop at epoch {epoch} -- robust_recon_loss plateaued")
+                print(f"  {tok_name}: early stop at epoch {epoch}; robust_recon_loss plateaued")
                 break
         prev_loss = row["robust_recon_loss"]
 
@@ -146,7 +146,7 @@ def train_one(tok_name, load_fresh, args, cfg, densenet, sel_items, report_items
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, orig_tok.reconstruct(drift_x)).cpu().numpy())))
         auc_dec = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, tok.reconstruct(drift_x)).cpu().numpy())))
     drop = auc_orig - auc_dec
-    print(f"{tok_name} clean recon AUC (REPORT_ITEMS) -- original={auc_orig:.4f}  decoder-realism={auc_dec:.4f}  "
+    print(f"{tok_name} clean recon AUC (REPORT_ITEMS): original={auc_orig:.4f}  decoder-realism={auc_dec:.4f}  "
           f"(drop={drop:.4f}){'  *** LARGE DROP ***' if drop > 0.03 else ''}")
     del tok, orig_tok
     torch.cuda.empty_cache()

@@ -1,0 +1,2 @@
+tokenizer,attack,n,fid_low_n,lpips_recon_vs_original,psnr_recon_vs_original,ssim_recon_vs_original,rfid_recon_vs_original
+unitok,clean_recon,256,True,0.03314,34.632,0.8907,15.01

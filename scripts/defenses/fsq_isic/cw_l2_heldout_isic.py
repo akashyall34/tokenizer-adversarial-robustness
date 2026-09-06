@@ -4,7 +4,7 @@ attack, never seen (cached or live) by any FSQ defense in this repo, against
 advft (per-eps), decoder-realism-robust, and combined. Same role as
 scripts/defenses/fsq_aptos/cw_l2_heldout_aptos.py.
 
-First calibrates the L2 budget against the UNDEFENDED tokenizer -- pick
+First calibrates the L2 budget against the undefended tokenizer; pick
 --eps-l2 from that printout, or accept the default (the largest grid value)
 if you haven't calibrated yet.
 
@@ -59,7 +59,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--eps-l2", type=float, default=None, help="default: calibrate and use the largest grid value")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
@@ -119,7 +119,7 @@ def main():
         row = dict(label=label, eps_l2=eps_l2, n=len(y_np),
                    clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg), cw_auc=auc(y_np, cw_lg),
                    cw_asr=asr(clean_lg, cw_lg, y_np))
-        print(f"--- {label} -- HELD-OUT CW-L2 attack (n={len(y_np)}, eps_l2={eps_l2}) ---")
+        print(f"--- {label}: HELD-OUT CW-L2 attack (n={len(y_np)}, eps_l2={eps_l2}) ---")
         print(f"clean AUC   : {row['clean_auc']:.4f}")
         print(f"CW-L2 AUC   : {row['cw_auc']:.4f}   (loss/norm this checkpoint was NEVER trained against)")
         print(f"CW-L2 ASR   : {row['cw_asr']:.1f}%\n")
@@ -134,7 +134,7 @@ def main():
     rows = []
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"fsq_advft_eps{eps255}_isic.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_isic.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_isic.py first"
         tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()
@@ -148,7 +148,7 @@ def main():
         (f"fsq_combined_eps{combined_eps}_isic.pt", "combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
         ckpt_path = os.path.join(args.ckpt_dir, ckpt_name)
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()

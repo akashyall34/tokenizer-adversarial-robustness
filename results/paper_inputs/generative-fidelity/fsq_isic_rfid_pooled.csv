@@ -1,0 +1,5 @@
+tokenizer,attack,n_real,n_fake,rfid_pooled
+fsq,M1,256,1280,41.332
+fsq,M3_alpha03,256,1280,41.337
+fsq,M2-sat,256,1280,42.51
+fsq,M2-unb,256,1280,56.631

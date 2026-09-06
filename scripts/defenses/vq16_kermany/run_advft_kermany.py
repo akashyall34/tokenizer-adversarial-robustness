@@ -3,20 +3,20 @@
 attack, on Kermany. One checkpoint per eps255 in the config's eps_grid.
 
 Trains directly against the already-generated cached attack images (see
-run_vq16_kermany.py) -- no attack is generated here. Trains ONLY on SEL_ITEMS
+run_vq16_kermany.py); no attack is generated here. Trains only on SEL_ITEMS
 (half of the fixed 256-image attack subset); Part 3/BPDA/certification score
 against REPORT_ITEMS, the untouched other half, so nothing reported was also
 used to pick its own hyperparameters or train the model being reported on.
 
 The inner "attack" step finds the worst-case perturbation that maximizes the
-margin against the CURRENT model (M2-sat's mechanism, pointed at the
+margin against the current model (M2-sat's mechanism, pointed at the
 trainable model); the outer "defense" step takes a gradient step on the
 encoder + quant_conv only (codebook, decoder, classifier frozen) to minimize
 that same worst-case margin. No labels: the target code k1 is read off the
 model's own clean forward pass each step.
 
-Uses the CORRECTED, L2-normalized margin (src/defenses/vq16/margin.py), not
-the buggy unnormalized one in src/attacks/vq16_attacks.py -- see
+Uses the corrected, L2-normalized margin (src/defenses/vq16/margin.py), not
+the buggy unnormalized one in src/attacks/vq16_attacks.py; see
 docs/known_limitations.md.
 
 Usage:
@@ -60,17 +60,17 @@ def parse_args():
     p.add_argument("--out-dir", default="results/outputs")
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/kermany_attack.yaml")
-    p.add_argument("--max-epochs", type=int, default=40, help="ceiling, not a target -- watch the loss log")
+    p.add_argument("--max-epochs", type=int, default=40, help="ceiling, not a target; watch the loss log")
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--batch", type=int, default=32)
     p.add_argument("--early-stop-min-epochs", type=int, default=3,
-                    help="never stop before this many epochs -- early deltas aren't a reliable plateau signal")
+                    help="never stop before this many epochs; early deltas aren't a reliable plateau signal")
     p.add_argument("--early-stop-patience", type=int, default=2)
     p.add_argument("--early-stop-rel-thresh", type=float, default=0.10,
                     help="an epoch's improvement must be >= this fraction of the arm's own first "
                          "epoch-over-epoch improvement to still count as improving")
     p.add_argument("--clean-auc-collapse-drop", type=float, default=0.10,
-                    help="stop immediately if clean AUC falls this far below the pretrained baseline -- "
+                    help="stop immediately if clean AUC falls this far below the pretrained baseline; "
                          "margin loss alone keeps improving smoothly even through a clean-AUC collapse, "
                          "so it can't be trusted as the only stopping signal")
     return p.parse_args()
@@ -101,7 +101,7 @@ def finetune_one(eps255, args, orig_net, densenet, sel_items, report_items, Xc_s
           f"from SEL_ITEMS x {ATTACKS_TO_DEFEND}")
 
     model = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
-    print(f"eps{eps255}: submodule trainability check --")
+    print(f"eps{eps255}: submodule trainability check:")
     freeze_non_encoder(model, verbose=True)
     opt = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
 
@@ -149,7 +149,7 @@ def finetune_one(eps255, args, orig_net, densenet, sel_items, report_items, Xc_s
 
         if clean_auc < clean_auc_baseline - args.clean_auc_collapse_drop:
             print(f"  eps{eps255}: *** CLEAN AUC COLLAPSE at epoch {epoch} "
-                  f"({clean_auc:.4f} vs baseline {clean_auc_baseline:.4f}) -- stopping now, "
+                  f"({clean_auc:.4f} vs baseline {clean_auc_baseline:.4f}); stopping now, "
                   f"reverting to best epoch (clean_auc={best_auc:.4f}) instead of this one ***")
             break
 
@@ -162,12 +162,12 @@ def finetune_one(eps255, args, orig_net, densenet, sel_items, report_items, Xc_s
             else:
                 patience_ctr = 0
             if epoch + 1 >= args.early_stop_min_epochs and patience_ctr >= args.early_stop_patience:
-                print(f"  eps{eps255}: early stop at epoch {epoch} -- improvement plateaued "
+                print(f"  eps{eps255}: early stop at epoch {epoch}; improvement plateaued "
                       f"(this epoch's delta={delta:.4f} vs first-epoch delta={first_delta:.4f})")
                 break
         prev_loss = row["margin_loss"]
 
-    assert best_state is not None, f"eps{eps255}: no epoch ever completed -- nothing to save"
+    assert best_state is not None, f"eps{eps255}: no epoch ever completed; nothing to save"
     model.load_state_dict(best_state)
     torch.save(model.state_dict(), ckpt_path)
     assert os.path.getsize(ckpt_path) > 0, f"eps{eps255}: torch.save produced a 0-byte file"
@@ -178,9 +178,9 @@ def finetune_one(eps255, args, orig_net, densenet, sel_items, report_items, Xc_s
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(orig_net, drift_x)).cpu().numpy())))
         auc_ft = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, reconstruct(model, drift_x)).cpu().numpy())))
     drop = auc_orig - auc_ft
-    print(f"  eps{eps255}: clean recon AUC (REPORT_ITEMS, held-out) -- original={auc_orig:.4f}  "
+    print(f"  eps{eps255}: clean recon AUC (REPORT_ITEMS, held-out): original={auc_orig:.4f}  "
           f"fine-tuned={auc_ft:.4f}  (drop={drop:.4f})"
-          f"{'  *** LARGE DROP -- possible collapse, inspect before trusting this checkpoint ***' if drop > 0.03 else ''}")
+          f"{'  *** LARGE DROP; possible collapse, inspect before trusting this checkpoint ***' if drop > 0.03 else ''}")
     del model
     torch.cuda.empty_cache()
     return ckpt_path

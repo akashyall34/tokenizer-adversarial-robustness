@@ -3,12 +3,12 @@ mirroring src/defenses/vq16/margin.py's role but for the encode_prequant ->
 quant_proj -> quantizer -> post_quant_proj -> decoder pipeline shared by both
 tokenizers (attribute names match MultiCodebookTokenizer.net exactly).
 
-The margin / clean-top1 math is not duplicated here -- it is imported from
-src/attacks/meditok_unitok_attacks.py. MediTok/UniTok's attack-side margin is
+The margin and clean-top1 math is not duplicated here; it is imported from
+src/attacks/meditok_unitok_attacks.py. MediTok and UniTok's attack-side margin is
 already computed in the correctly normalized space (unlike VQ-16, see
-docs/known_limitations.md), so there is no separate corrected version.
-`raw_margin` below just flips the sign to what the fine-tuning loop needs
-(minimize the raw margin to widen it).
+docs/known_limitations.md), so there is no separate corrected version. `raw_margin`
+below just flips the sign to what the fine-tuning loop needs, minimizing the raw
+margin to widen it.
 """
 from src.attacks.meditok_unitok_attacks import margin_loss as _attack_margin_loss
 

@@ -1,9 +1,9 @@
-"""ISIC 2019 (skin lesion) dataset: 8-class ground truth collapsed to
-malignant vs benign, single random 70/10/20 train/val/test shuffle (no
-provided split, unlike APTOS -- and no separate stratified val carve-out
-from a fixed train dir, unlike Kermany).
+"""ISIC 2019 (skin lesion) dataset: 8-class ground truth collapsed to malignant
+vs benign. There is no provided split (unlike APTOS) and no fixed train
+directory to carve a stratified val set from (unlike Kermany), so this uses a
+single random 70/10/20 train/val/test shuffle.
 
-Image loading/normalization is identical to Kermany's, reused from there.
+Image loading and normalization are identical to Kermany's, reused from there.
 """
 import os
 

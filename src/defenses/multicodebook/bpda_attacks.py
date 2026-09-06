@@ -1,8 +1,8 @@
-"""Adaptive-attack constructors for MediTok/UniTok -- same role and same
-three attack families as src/defenses/vq16/bpda_attacks.py, adapted to the
-multi-codebook cosine-similarity quantizer. See that module's docstring for
-why the pure geometric attack is blind to decoder-side defenses and why the
-blended geo+BCE attack is the one that actually has line-of-sight into them.
+"""Adaptive-attack constructors for MediTok/UniTok: same role and same three
+attack families as src/defenses/vq16/bpda_attacks.py, adapted to the
+multi-codebook cosine-similarity quantizer. See that module's docstring for why
+the pure geometric attack is blind to decoder-side defenses and why the blended
+geo+BCE attack can see them.
 """
 import torch
 import torch.nn.functional as F
@@ -15,8 +15,8 @@ from src.tokenizers.meditok_unitok import MultiCodebookTokenizer
 
 
 def _plain_quantize(tok, z):
-    """Real, deterministic (no noise/voting) per-codebook nearest-neighbor
-    lookup -- the undefended quantize step, for 'no SQS' adaptive-attack checks."""
+    """Real, deterministic per-codebook nearest-neighbor lookup (no noise, no
+    voting), the undefended quantize step, for the "no SQS" adaptive-attack checks."""
     B, N, D = z.shape
     chunk_size = D // tok.num_codebooks
     chunks = z.split(chunk_size, dim=-1)

@@ -1,4 +1,4 @@
-"""Pixel-input noise baseline -- the direct RQ2 comparison point for SQS.
+"""Pixel-input noise baseline, the direct RQ2 comparison point for SQS.
 
 Same K-pass majority-vote mechanism as flat SQS (src/defenses/vq16/sqs.py),
 but the noise goes onto the raw pixel input before encoding, not onto the

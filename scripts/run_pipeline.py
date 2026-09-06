@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Single entry point for running this repo's pipelines in their correct
-dependency order. This wraps the individual scripts under scripts/attacks/
-and scripts/defenses/ rather than replacing them -- each one stays runnable
-and testable on its own; this just encodes the order so nobody has to know
-it by heart or reverse-engineer it from docstrings.
+dependency order. It wraps the individual scripts under scripts/attacks/ and
+scripts/defenses/ rather than replacing them: each stays runnable and testable
+on its own, and this just encodes the order so nobody has to know it by heart or
+reverse-engineer it from docstrings.
 
-Per-script tunable hyperparameters (steps, lr, n, epochs, ...) are NOT
-exposed here -- run that one script directly if you need to override one.
-This orchestrator only forwards the identity/path args every stage needs
+Per-script tunable hyperparameters (steps, lr, n, epochs, and so on) are not
+exposed here; run that one script directly if you need to override one. This
+orchestrator only forwards the identity and path args every stage needs
 (--data-root, --vq16-ckpt, ...) and encodes ordering.
 
 List stages:
@@ -27,9 +27,9 @@ Run a stage:
         --densenet-ckpt ckpts/classifiers/densenet121_kermany.pt \
         --probe-ckpt ckpts/linear_probes/probe_vq16_kermany.pt
 
-If a step fails, fix the underlying issue and rerun the same --stage --
-every script here is independently resumable (skips work whose output
-already exists on disk), so restarting a stage does not redo finished steps.
+If a step fails, fix the underlying issue and rerun the same --stage. Every
+script here is independently resumable (it skips work whose output already
+exists on disk), so restarting a stage does not redo finished steps.
 """
 import argparse
 import os
@@ -43,7 +43,14 @@ def s(*parts):
     return os.path.join(ROOT, *parts)
 
 
-# stage name -> ordered list of (script_path, [orchestrator arg names to forward])
+# every repo/ckpt path the 4-tokenizer generative-fidelity run needs
+_TOK_ARGS = ["data_root", "llamagen_repo", "vq16_ckpt", "fsq_repo", "fsq_ckpt",
+             "meditok_repo", "unitok_repo", "tokenizer_ckpt_dir"]
+
+# stage name -> ordered list of steps. A step is
+#   (script_path, [orchestrator arg names to forward])
+# or, for a script that also takes fixed literal flags (--dataset, --defended),
+#   (script_path, [orchestrator arg names to forward], [literal argv])
 STAGES = {
     "attacks-kermany": [
         (s("attacks", "run_vq16_kermany.py"), ["data_root", "llamagen_repo", "vq16_ckpt", "densenet_ckpt"]),
@@ -68,7 +75,7 @@ STAGES = {
     ],
     "vq16-defenses-kermany": [
         # advft and decoder-realism are mutually independent (disjoint frozen/trainable
-        # params); sweep_sqs only needs the undefended tokenizer -- all three could run in
+        # params); sweep_sqs only needs the undefended tokenizer. All three could run in
         # parallel, but this pipeline runs them sequentially for simplicity.
         (s("defenses", "vq16_kermany", "run_advft_kermany.py"),
          ["data_root", "llamagen_repo", "vq16_ckpt", "densenet_ckpt"]),
@@ -139,7 +146,7 @@ STAGES = {
     ],
     "meditok-defenses-kermany": [
         # advft and decoder-realism are mutually independent; sweep_sqs only needs the
-        # undefended tokenizers -- all three could run in parallel, but this pipeline runs
+        # undefended tokenizers. All three could run in parallel; this pipeline runs
         # them sequentially for simplicity. Each script runs meditok only (split from the combined meditok_unitok_kermany pipeline).
         (s("defenses", "meditok_kermany", "run_advft_kermany.py"),
          ["data_root", "meditok_repo", "tokenizer_ckpt_dir", "densenet_ckpt"]),
@@ -170,7 +177,7 @@ STAGES = {
     ],
     "unitok-defenses-kermany": [
         # advft and decoder-realism are mutually independent; sweep_sqs only needs the
-        # undefended tokenizers -- all three could run in parallel, but this pipeline runs
+        # undefended tokenizers. All three could run in parallel; this pipeline runs
         # them sequentially for simplicity. Each script runs unitok only (split from the combined meditok_unitok_kermany pipeline).
         (s("defenses", "unitok_kermany", "run_advft_kermany.py"),
          ["data_root", "unitok_repo", "tokenizer_ckpt_dir", "densenet_ckpt"]),
@@ -344,6 +351,26 @@ STAGES = {
         (s("defenses", "unitok_isic", "defense_eval_table_isic.py"),
          ["data_root", "unitok_repo", "tokenizer_ckpt_dir", "effnet_ckpt", "probe_ckpt_dir"]),
     ],
+    # generative downstream: run after the matching attacks-<dataset> bundle and,
+    # for the defended half, the <tok>-defenses-<dataset> checkpoints exist.
+    "generative-fidelity-kermany": [
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "kermany"]),
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "kermany", "--defended"]),
+    ],
+    "generative-fidelity-aptos": [
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "aptos"]),
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "aptos", "--defended"]),
+    ],
+    "generative-fidelity-isic": [
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "isic"]),
+        (s("generative", "run_fidelity.py"), _TOK_ARGS, ["--dataset", "isic", "--defended"]),
+    ],
+    # CUDA + the [vqa] dependency extra + MEDITOK_VLM=1 weights (docs/checkpoints.md).
+    "vqa-redteam": [
+        (s("generative", "run_vqa_redteam.py"), ["data_root", "meditok_repo"], ["--dataset", "kermany"]),
+        (s("generative", "run_vqa_redteam.py"), ["data_root", "meditok_repo"], ["--dataset", "aptos"]),
+        (s("generative", "run_vqa_redteam.py"), ["data_root", "meditok_repo"], ["--dataset", "isic"]),
+    ],
 }
 
 # orchestrator arg name -> the CLI flag every script that accepts it actually uses
@@ -380,25 +407,29 @@ def main():
     if args.list_stages or not args.stage:
         for stage, steps in STAGES.items():
             print(f"{stage}:")
-            for script_path, _ in steps:
-                print(f"  {os.path.relpath(script_path, ROOT)}")
+            for step in steps:
+                literal = " ".join(step[2]) if len(step) > 2 else ""
+                print(f"  {os.path.relpath(step[0], ROOT)} {literal}".rstrip())
         if not args.stage:
             print("\npass --stage <name> to run one")
         return
 
-    for script_path, arg_names in STAGES[args.stage]:
+    for step in STAGES[args.stage]:
+        script_path, arg_names = step[0], step[1]
         cmd = [sys.executable, script_path]
         for name in arg_names:
             value = getattr(args, name)
             if value is not None:
                 cmd += [ARG_TO_FLAG[name], value]
+        if len(step) > 2:
+            cmd += step[2]
         print(f"\n=== {os.path.relpath(script_path, ROOT)} ===")
         print(" ".join(cmd))
         if args.dry_run:
             continue
         result = subprocess.run(cmd)
         if result.returncode != 0:
-            print(f"\n*** {os.path.relpath(script_path, ROOT)} exited with code {result.returncode} -- "
+            print(f"\n*** {os.path.relpath(script_path, ROOT)} exited with code {result.returncode}; "
                   f"stopping the pipeline here. Fix the issue and rerun --stage {args.stage}; "
                   f"already-finished steps will be skipped (each script checks for existing output). ***")
             sys.exit(result.returncode)

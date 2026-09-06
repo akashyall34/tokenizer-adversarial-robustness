@@ -3,7 +3,7 @@
 (decoder-side) checkpoint into one combined defense. Same hard-stop-on-
 collapse discipline as scripts/defenses/fsq_aptos/merge_checkpoints_aptos.py.
 
-FSQ's quantize_t is parameter-free (no codebook, no learnable buffers) --
+FSQ's quantize_t is parameter-free (no codebook, no learnable buffers), so
 every frozen key in both checkpoints is expected to be byte-identical, with
 zero diagnostic exceptions needed (unlike MediTok/UniTok's vocab_usage EMA
 buffer).
@@ -71,7 +71,7 @@ def main():
     decoder_ckpt_path = os.path.join(args.ckpt_dir, "fsq_decoder_realism_robust.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"fsq_combined_eps{advft_eps}.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training script first"
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir, cfg["seed"], cfg["val_frac"])
@@ -100,11 +100,11 @@ def main():
     with torch.no_grad():
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, orig_tok.reconstruct(drift_x)).cpu().numpy())))
         auc_comb = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, combined.reconstruct(drift_x)).cpu().numpy())))
-    print(f"clean recon AUC -- original={auc_orig:.4f}  combined(encoder+decoder)={auc_comb:.4f}  "
+    print(f"clean recon AUC: original={auc_orig:.4f}  combined(encoder+decoder)={auc_comb:.4f}  "
           f"(drop={auc_orig - auc_comb:.4f}){'  *** LARGE DROP ***' if (auc_orig - auc_comb) > 0.03 else ''}")
 
     assert auc_comb > AUC_FLOOR, (
-        f"combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance -- broken checkpoint, "
+        f"combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance; broken checkpoint, "
         f"not a real defense result. Delete {advft_ckpt_path} and {combined_ckpt_path}, then rerun "
         f"run_advft_kermany.py for this eps.")
     print(f"\nDONE. combined encoder+decoder model ready at {combined_ckpt_path} "

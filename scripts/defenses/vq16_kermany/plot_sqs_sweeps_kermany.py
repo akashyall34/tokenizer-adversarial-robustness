@@ -42,7 +42,7 @@ def main():
     ax3.set_xticks(range(len(pivot_k.columns))); ax3.set_xticklabels(pivot_k.columns, rotation=45)
     ax3.set_yticks(range(len(pivot_k.index))); ax3.set_yticklabels(pivot_k.index)
     ax3.set_xlabel("sigma"); ax3.set_ylabel("K (noisy passes)")
-    ax3.set_title("flat SQS: K x sigma grid -- mean_auc_adv")
+    ax3.set_title("flat SQS: K x sigma grid; mean_auc_adv")
     if k_flat in pivot_k.index and sigma_flat in pivot_k.columns:
         ki, si2 = list(pivot_k.index).index(k_flat), list(pivot_k.columns).index(sigma_flat)
         ax3.scatter([si2], [ki], marker="*", s=300, c="red", edgecolors="white", label="flat SQS winner")
@@ -88,7 +88,7 @@ def main():
     ax.legend(fontsize=8)
     fig.colorbar(im2, ax=ax, label="mean_auc_adv")
 
-    fig.suptitle("SQS hyperparameter sweeps (SEL_ITEMS, worst-case eps) -- color/height = mean adversarial AUC recovered", y=1.03)
+    fig.suptitle("SQS hyperparameter sweeps (SEL_ITEMS, worst-case eps); color/height = mean adversarial AUC recovered", y=1.03)
     fig.tight_layout()
     png_main = os.path.join(args.out_dir, "vq16_sqs_grid_plots.png")
     fig.savefig(png_main, dpi=150, bbox_inches="tight")

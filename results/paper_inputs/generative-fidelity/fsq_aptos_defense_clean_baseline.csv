@@ -1,0 +1,8 @@
+tokenizer,defense,n,fid_low_n,lpips_recon_vs_original,psnr_recon_vs_original,ssim_recon_vs_original,rfid_recon_vs_original
+fsq,encoder_ft_eps0.5,256,True,0.26431,26.178,0.8178,147.404
+fsq,encoder_ft_eps1,256,True,0.2519,25.769,0.8066,136.002
+fsq,encoder_ft_eps2,256,True,0.29361,23.382,0.8167,168.316
+fsq,encoder_ft_eps4,256,True,0.23966,22.058,0.7432,147.5
+fsq,encoder_ft_eps8,256,True,0.24495,22.342,0.743,150.485
+fsq,decoder_ft,256,True,0.16126,26.466,0.7557,92.811
+fsq,combined,256,True,0.22728,23.319,0.7195,126.508

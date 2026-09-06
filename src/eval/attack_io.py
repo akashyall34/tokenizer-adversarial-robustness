@@ -33,7 +33,7 @@ def write_meta(d: str, **fields) -> None:
 
 def load_folder(adv_root: str, tokenizer: str, attack: str, eps, idx_subset=None):
     """idx_subset: optional list of positions into the full saved set (files are
-    saved in a fixed deterministic order) -- used to pull only a SEL or REPORT
+    saved in a fixed deterministic order), used to pull only a SEL or REPORT
     half without needing separate cached files."""
     d = save_dir(adv_root, tokenizer, attack, eps)
     files = sorted(f for f in os.listdir(d) if f.endswith(".pt"))

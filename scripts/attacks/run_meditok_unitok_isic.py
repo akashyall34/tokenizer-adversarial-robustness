@@ -4,7 +4,7 @@ run_meditok_unitok_kermany.py, against ISIC 2019 + EfficientNet-B4 (timm).
 
 Two things differ from the Kermany/APTOS versions:
   - attack_batch defaults to 4 here (not the config's 8, which is for the
-    VQ-16 run) -- the decoder plus the B4 classifier need the extra memory
+    VQ-16 run). The decoder plus the B4 classifier need the extra memory
     headroom.
   - The per-tokenizer eval table does NOT include M0 rows. M0 is
     tokenizer-free and already covered by vq16_attack_table.csv (see
@@ -59,7 +59,7 @@ def parse_args():
     p.add_argument("--probe-out-dir", default="ckpts/linear_probes")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--attack-batch", type=int, default=4,
-                    help="overrides the config's attack_batch (8, sized for VQ-16) -- "
+                    help="overrides the config's attack_batch (8, sized for VQ-16); "
                          "MediTok/UniTok need a smaller batch here (decoder + B4 classifier)")
     return p.parse_args()
 
@@ -114,7 +114,7 @@ def run_tokenizer(tok, logit_fn, cfg, args, train_items, val_items, test_items, 
     auc_raw_c, auc_recon_c, auc_prb_c = auc(Yc, raw_c), auc(Yc, recon_c), auc(Yc, prb_c)
     print(f"  clean: raw={auc_raw_c:.4f} recon={auc_recon_c:.4f} probe={auc_prb_c:.4f}")
 
-    # no M0 here -- it's tokenizer-free and already fully covered by vq16_attack_table.csv
+    # no M0 here; it's tokenizer-free and already covered by vq16_attack_table.csv
     rows = []
     for attack, eps in tqdm(jobs, desc=f"{tok.name} eval"):
         Xa, Ya = load_folder(args.adv_dir, tok.name, attack, eps)

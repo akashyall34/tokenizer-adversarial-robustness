@@ -4,12 +4,12 @@ sanity check, the pixel-noise baseline (RQ2's comparison point), all three
 token-voting SQS variants (flat, spatial-consensus, margin-adaptive), the
 K x sigma check (is K worth varying, or is it inert like every other SQS
 sweep suggested?), the logit-ensemble diagnostic (a different smoothing
-POINT, not a different sigma -- see src/defenses/vq16/sqs.py), and finally
+point, not a different sigma; see src/defenses/vq16/sqs.py), and finally
 picking the one standalone winner used downstream for advft+SQS and the BPDA
 adaptive-attack check.
 
 Every hyperparameter is selected from a real measured tradeoff on SEL_ITEMS
-only (never REPORT_ITEMS), at the worst-case eps in the config's eps_grid --
+only (never REPORT_ITEMS), at the worst-case eps in the config's eps_grid.
 Part 3 (final reporting) verifies the chosen parameters across the full eps
 grid separately, so selection and reporting never touch the same numbers.
 
@@ -68,12 +68,12 @@ def densenet_logit(densenet, x):
 CLEAN_AUC_FLOOR = 0.85  # a defense that tanks clean performance to "win" doesn't count
 K_SWEEP = 16
 SIGMA_GRID = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02]
-SIGMA_GRID_FLAT_EXTENDED = SIGMA_GRID + [0.05, 0.1]  # flat only -- confirms the plateau continues
+SIGMA_GRID_FLAT_EXTENDED = SIGMA_GRID + [0.05, 0.1]  # flat only; confirms the plateau continues
 K_GRID = [4, 8, 16, 32]
 SPATIAL_WEIGHT_GRID = [0.4, 0.5, 0.6, 0.7, 0.8]
 AGREEMENT_THRESH_GRID = [50, 60, 70, 80, 90]
 SIGMA_MULT_GRID = [2.0, 4.0, 8.0]
-LOGIT_ENSEMBLE_SIGMA_GRID = [0.005, 0.01, 0.02]  # top half of SIGMA_GRID -- sigma barely mattered
+LOGIT_ENSEMBLE_SIGMA_GRID = [0.005, 0.01, 0.02]  # top half of SIGMA_GRID; sigma barely mattered
                                                    # for token-voting across its whole tested range
 
 
@@ -94,7 +94,7 @@ def pick_best(df, score_col, clean_col="auc_clean"):
     ok = df[df[clean_col] >= CLEAN_AUC_FLOOR]
     if len(ok):
         return ok.loc[ok[score_col].idxmax()]
-    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- picking best clean-preserving config instead ***")
+    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}); picking best clean-preserving config instead ***")
     return df.loc[df[clean_col].idxmax()]
 
 
@@ -127,10 +127,10 @@ def main():
             - margin_reconstruct(orig_net, Xc_sel[:16])).abs().max().item()
     print(f"sqs_quantize(sigma=0) vs. real reconstruct: max abs diff = {diff:.6f}")
     if diff > 1e-2:
-        print("*** MISMATCH exceeds the expected float32-decoder noise floor -- a REAL logic error. "
+        print("*** MISMATCH exceeds the expected float32-decoder noise floor; a REAL logic error. "
               "Needs fixing before trusting any SQS number. ***")
     else:
-        print("within the expected float32-through-decoder noise floor (~0.004) -- safe to proceed.")
+        print("within the expected float32-through-decoder noise floor (~0.004); safe to proceed.")
 
     # --- pixel-noise baseline (RQ2 comparison point) ---
     csv_pixel = os.path.join(args.out_dir, "vq16_pixel_noise_sweep.csv")
@@ -267,7 +267,7 @@ def main():
     ok = summary[summary.auc_clean >= CLEAN_AUC_FLOOR]
     pool = ok if len(ok) else summary
     if not len(ok):
-        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- "
+        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}); "
               f"picking the best clean-preserving variant instead ***")
     best_name = pool.loc[pool.mean_auc_adv.idxmax(), "variant"] if len(ok) else pool.loc[pool.auc_clean.idxmax(), "variant"]
     print(f"\nWINNER: {best_name}")

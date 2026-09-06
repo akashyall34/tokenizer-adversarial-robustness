@@ -74,7 +74,7 @@ def main():
     seed_everything(cfg["seed"])
     for attack, eps in jobs:
         # M0 is tokenizer-free, so it's saved under a shared "m0" folder rather
-        # than "vq16" -- MediTok/UniTok/FSQ runs reuse it instead of regenerating it.
+        # than "vq16"; MediTok/UniTok/FSQ runs reuse it instead of regenerating it.
         save_name = "m0" if attack == "M0" else tok.name
         if already_done(args.adv_dir, save_name, attack, eps, len(attack_items)):
             print(f"  {attack} eps{eps}: already saved, skip")

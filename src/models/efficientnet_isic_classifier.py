@@ -1,6 +1,6 @@
-"""ISIC downstream classifier: EfficientNet-B4 (timm, not torchvision -- this
-is a different checkpoint/library than APTOS's EfficientNet-B5), 8-class
-softmax head collapsed to one binary logit (malignant vs benign) via
+"""ISIC downstream classifier: EfficientNet-B4 from timm, not torchvision, so a
+different checkpoint and library than APTOS's EfficientNet-B5. The 8-class
+softmax head is collapsed to one binary logit (malignant vs benign) by a
 logsumexp over the two grade groups.
 """
 import timm

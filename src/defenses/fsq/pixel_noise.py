@@ -1,6 +1,6 @@
-"""Pixel-input noise baseline for FSQ -- the RQ2 comparison point, same role
-as every other tokenizer's pixel_noise.py. Same K-pass majority-vote-per-dim
-mechanism as flat SQS, noise at the pixel input instead of the
+"""Pixel-input noise baseline for FSQ, the RQ2 comparison point, same role as
+every other tokenizer's pixel_noise.py. Same K-pass majority-vote-per-dim
+mechanism as flat SQS, with noise at the pixel input instead of the
 pre-quantization latent.
 """
 import torch

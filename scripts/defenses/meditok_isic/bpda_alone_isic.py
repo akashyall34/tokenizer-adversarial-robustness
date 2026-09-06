@@ -59,10 +59,10 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--attack-batch", type=int, default=4,
-                    help="overrides the config's attack_batch (8, sized for VQ-16) -- "
+                    help="overrides the config's attack_batch (8, sized for VQ-16); "
                          "MediTok runs heavier: decoder + B4 classifier")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
     p.add_argument("--steps", type=int, default=50)
@@ -102,7 +102,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, x, y, y_np, bs, device):
     rows = []
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_advft_eps{eps255}_isic.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_isic.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_isic.py first"
         tok = load_fresh()
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()
@@ -118,7 +118,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, x, y, y_np, bs, device):
         (decoder_ckpt_path, f"{tok_name} decoder-realism-robust ALONE, no SQS"),
         (combined_ckpt_path, f"{tok_name} combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         for eps255 in cfg["eps_grid"]:
             tok = load_fresh()
             tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
@@ -157,7 +157,7 @@ def main():
 
 print("\nCompare all three families per tokenizer: whichever shows the smallest BPDA-adaptive AUC "
       "drop from its own clean AUC, at the eps that matters, is the one that actually survives an "
-      "adaptive attacker best -- that comparison, not any single number in isolation, is what "
+      "adaptive attacker best; that comparison, not any single number in isolation, is what "
       "should decide which checkpoint becomes the headline defense.")
 
 

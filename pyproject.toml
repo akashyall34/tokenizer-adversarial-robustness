@@ -22,10 +22,19 @@ dependencies = [
     "typed-argument-parser>=1.9",
     "ftfy>=6.1",
     "regex>=2023.10.3",
+    # generative-downstream reconstruction-fidelity metrics (LPIPS / PSNR / SSIM / rFID)
+    "torchmetrics>=1.3",
+    "lpips>=0.1.4",
+    "torch-fidelity>=0.3.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4"]
+# The LLaVA-Med (MedITok) VQA red-team (scripts/generative/run_vqa_redteam.py)
+# needs the meditok "understanding" fork's own pinned transformers, which
+# conflicts with what torch/timm above want -- install this extra in a SEPARATE
+# environment. See docs/checkpoints.md.
+vqa = ["transformers==4.36.2", "accelerate>=0.21", "sentencepiece>=0.1.99"]
 
 [build-system]
 requires = ["setuptools>=68"]

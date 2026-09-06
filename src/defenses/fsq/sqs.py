@@ -1,12 +1,11 @@
-"""SQS for FSQ: same K-pass noisy-majority-vote mechanism as every other
-tokenizer's sqs.py, but the vote is per SCALAR DIMENSION (independent across
-the 5 dims), not a joint per-token codebook-index vote -- FSQ's own
-quantizer already treats the 5 dims independently (`fsq_bound` then
-`.round()` per-dim), so this mirrors the real quantizer's own decision
-structure rather than inventing a joint one. Noise is injected directly in
-z-space: `fsq_bound`'s own tanh IS the bounding step, so there's no separate
-normalized lookup space to inject into the way VQ-16/MediTok's L2/cosine
-spaces have.
+"""SQS for FSQ: the same K-pass noisy-majority-vote mechanism as every other
+tokenizer's sqs.py, but the vote is per scalar dimension, independent across the
+5 dims, rather than a joint per-token codebook-index vote. FSQ's own quantizer
+already treats the 5 dims independently (`fsq_bound` then `.round()` per dim), so
+this mirrors the real quantizer's decision structure instead of inventing a joint
+one. Noise is injected directly in z-space: `fsq_bound`'s tanh is the bounding
+step, so there is no separate normalized lookup space to inject into the way
+VQ-16's L2 space or MediTok's cosine space have.
 """
 import torch
 import torch.nn.functional as F
@@ -51,12 +50,12 @@ def _token_grid_neighbor_mean(quant_t: torch.Tensor, Hp: int, Wp: int) -> torch.
 
 def sqs_quantize_spatial(tok, z: torch.Tensor, K: int, sigma: float, spatial_weight: float,
                           agreement_thresh_pct: float, seed: int = None):
-    """K-pass majority vote (per dim), then repair tokens flagged by EITHER
-    (1) spatial disagreement with the neighbor mean exceeding this image's
-    own median, or (2) low K-pass self-agreement (measured per-token across
-    ALL 5 dims jointly -- a token only counts as "agreed" if every dim's
-    voted level matches that pass's level, the all-or-nothing standard a
-    joint codebook-index vote would apply)."""
+    """K-pass majority vote (per dim), then repair tokens flagged by either
+    (1) spatial disagreement with the neighbor mean above this image's median,
+    or (2) low K-pass self-agreement. Self-agreement is measured per token
+    across all 5 dims jointly: a token counts as "agreed" only if every dim's
+    voted level matches that pass's level, the all-or-nothing standard a joint
+    codebook-index vote would apply."""
     if seed is not None:
         torch.manual_seed(seed)
     B, N, D = z.shape
@@ -79,10 +78,10 @@ def sqs_quantize_spatial(tok, z: torch.Tensor, K: int, sigma: float, spatial_wei
     is_outlier = (is_spatial_outlier | is_unstable).unsqueeze(-1)
 
     blended = torch.where(is_outlier, (1 - spatial_weight) * quant_t + spatial_weight * neighbor_mean, quant_t)
-    # re-snap the blend to a real level directly by rounding in level-space -- NOT by re-running
-    # fsq_bound (that would re-apply the tanh compression to an ALREADY-bounded value, double-
-    # bounding it; blended lives in the same normalized quant_t scale the real quantizer's OUTPUT
-    # uses, not the raw pre-quantization z scale fsq_bound expects as input).
+    # Re-snap the blend to a real level by rounding in level-space, not by re-running
+    # fsq_bound: that would re-apply the tanh compression to an already-bounded value.
+    # `blended` lives in the normalized quant_t scale the real quantizer's output uses,
+    # not the raw pre-quantization z scale fsq_bound expects as input.
     voted_snap = (blended * hw).round()
     quant_t_snap = voted_snap / hw
     return voted_snap, quant_t_snap
@@ -128,9 +127,9 @@ def sqs_probe_feat(tok, x: torch.Tensor, K: int, sigma: float, spatial: bool = F
     z = tok.encode_prequant(x)
     _, quant_t = (sqs_quantize_spatial(tok, z, K, sigma, spatial_weight, agreement_thresh_pct, seed=seed) if spatial
                   else sqs_quantize(tok, z, K, sigma, seed=seed))
-    # unflatten to the SAME channel-first layout FSQTokenizer.probe_feat uses -- the real trained
-    # probe was trained on that layout; a token-major flatten here would silently feed it a
-    # scrambled permutation of the same values (wrong, not a crash).
+    # Unflatten to the same channel-first layout FSQTokenizer.probe_feat uses. The trained
+    # probe expects that layout; a token-major flatten here would silently feed it a
+    # scrambled permutation of the same values, which is wrong rather than a crash.
     B, N, D = quant_t.shape
     Hp = Wp = int(round(N ** 0.5))
     quant_t_spatial = unflatten_quant(quant_t, Hp, Wp)
@@ -171,7 +170,7 @@ def sqs_logit_ensemble_predict(tok, densenet, x: torch.Tensor, K: int, sigma: fl
     z_noisy = z_rep + sigma * torch.randn_like(z_rep)
     levels = fsq_bound(z_noisy).round()
     quant_t = levels / half_width(z.device)
-    recon = decode_only(tok.net, quant_t)  # K*B separate reconstructions -- NOT voted first
+    recon = decode_only(tok.net, quant_t)  # K*B separate reconstructions, not voted first
     logits = densenet_logit(densenet, recon).view(K, B)
     return logits.mean(dim=0)
 
@@ -201,7 +200,7 @@ def dispatch_probe_feat(name: str, tok, x: torch.Tensor, params: dict):
 
 
 def dispatch_quantize(name: str, tok, z: torch.Tensor, params: dict) -> torch.Tensor:
-    """z -> quant_t (unwraps the (voted, quant_t) tuple where relevant) --
+    """Maps z to quant_t, unwrapping the (voted, quant_t) tuple where relevant,
     for the BPDA straight-through wrapper."""
     if name == "flat":
         _, quant_t = sqs_quantize(tok, z, params["K"], params["sigma"])

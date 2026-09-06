@@ -10,9 +10,9 @@ import torch
 
 def load_vq16_net(llamagen_repo: str, ckpt_path: str, device: str):
     """Loads a fresh, frozen (eval mode, requires_grad=False) VQ-16 net.
-    Exposed standalone (not just inside VQ16Tokenizer) because the defense
-    fine-tuning loop needs a new trainable copy per eps arm -- see
-    src/defenses/vq16/margin.py."""
+    Exposed standalone, not just inside VQ16Tokenizer, because the defense
+    fine-tuning loop needs a new trainable copy per eps arm (see
+    src/defenses/vq16/margin.py)."""
     if llamagen_repo not in sys.path:
         sys.path.insert(0, llamagen_repo)
     from tokenizer.tokenizer_image.vq_model import VQ_models

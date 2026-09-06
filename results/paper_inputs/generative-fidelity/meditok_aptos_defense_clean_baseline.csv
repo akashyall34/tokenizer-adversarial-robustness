@@ -1,0 +1,8 @@
+tokenizer,defense,n,fid_low_n,lpips_recon_vs_original,psnr_recon_vs_original,ssim_recon_vs_original,rfid_recon_vs_original
+meditok,encoder_ft_eps0.5,256,True,0.03677,27.508,0.8353,14.448
+meditok,encoder_ft_eps1,256,True,0.06794,22.928,0.7457,30.543
+meditok,encoder_ft_eps2,256,True,0.03173,29.511,0.8612,13.322
+meditok,encoder_ft_eps4,256,True,0.03021,31.655,0.8889,13.224
+meditok,encoder_ft_eps8,256,True,0.0607,26.291,0.8551,23.449
+meditok,decoder_ft,256,True,0.06144,33.687,0.9176,39.191
+meditok,combined,256,True,0.09472,24.461,0.8285,49.714

@@ -1,28 +1,26 @@
-"""SQS (Selective Quantization Smoothing): inject noise directly into VQ-16's
-pre-quantization latent, run the noisy quantization K times in parallel, and
-majority-vote the resulting token per position. Three variants, all sharing
-the same K-pass-vote mechanism but differing in what happens to the voted
-tokens (or, for logit-ensemble, whether tokens get voted on at all):
+"""SQS (Selective Quantization Smoothing) injects noise into VQ-16's
+pre-quantization latent, runs the noisy quantization K times in parallel, and
+majority-votes the resulting token per position. The three token-voting variants
+share that K-pass vote and differ only in what happens to the voted tokens; the
+fourth does not vote on the token at all.
 
 - flat: one global sigma for every token.
-- spatial: after voting, a token that disagrees with its 4 spatial neighbors
-  or had low self-agreement across its K draws gets blended toward its
-  neighbor mean and re-snapped to a real codebook entry.
+- spatial: after voting, a token that disagrees with its 4 spatial neighbors or
+  had low self-agreement across its K draws is blended toward its neighbor mean
+  and re-snapped to a real codebook entry.
 - margin_adaptive: sigma varies per token, scaled by how close that token's
-  clean latent sits to a codebook boundary (fragile tokens get more noise).
-- logit_ensemble: a different smoothing POINT, not a different sigma -- does
-  NOT vote on the token at all. Decodes and classifies each of the K noisy
-  draws separately, then averages the K classifier logits (classic
-  randomized-smoothing aggregation, Cohen et al. 2019 style). The other three
-  variants smooth at the discrete-token level and are structurally blind to
-  a dense attack pattern spread across most tokens at once; this variant
-  tests whether smoothing one level later, at the classifier decision, can
-  reach what token-voting cannot.
+  clean latent sits to a codebook boundary, so fragile tokens get more noise.
+- logit_ensemble: a different smoothing point rather than a different sigma. It
+  decodes and classifies each of the K noisy draws separately, then averages the
+  K classifier logits (standard randomized-smoothing aggregation, Cohen et al.
+  2019). The other three variants smooth at the discrete-token level and are
+  blind to a dense attack pattern spread across most tokens at once; this variant
+  tests whether smoothing one level later, at the classifier decision, reaches
+  what token-voting cannot.
 
-Noise is injected in the SAME L2-normalized space VQ-16's real quantizer
-uses for its own nearest-neighbor lookup (see src/defenses/vq16/margin.py) --
-raw-scale noise before normalization would mostly wash out in the
-normalization step itself.
+Noise is injected in the same L2-normalized space VQ-16's real quantizer uses for
+its nearest-neighbor lookup (see src/defenses/vq16/margin.py). Raw-scale noise
+added before normalization would mostly wash out in the normalization step.
 """
 import torch
 import torch.nn.functional as F
@@ -32,25 +30,25 @@ from src.models.densenet_classifier import logit as densenet_logit
 
 
 def quant_prequant(model, x: torch.Tensor) -> torch.Tensor:
-    """Pre-quantization latent in its raw conv-grid shape (B,C,H,W) -- NOT
-    the flattened (B,N,C) shape src/defenses/vq16/margin.py's prequant()
-    returns (that one is flattened for the margin/L2-distance computation;
-    every quantize function here needs the grid shape to reshape z_q back
-    into for model.decode())."""
+    """Pre-quantization latent in its raw conv-grid shape (B,C,H,W), not the
+    flattened (B,N,C) shape that `prequant()` in src/defenses/vq16/margin.py
+    returns. That one is flattened for the margin/L2-distance computation; every
+    quantize function here needs the grid shape to reshape z_q back into for
+    model.decode()."""
     return model.quant_conv(model.encoder(x))
 
 
-_quant_prequant = quant_prequant  # internal alias, kept for brevity within this module
+_quant_prequant = quant_prequant  # short alias used within this module
 
 
 def sqs_quantize(model, h: torch.Tensor, K: int, sigma: float, seed: int = None):
     """h: (B,C,Hp,Wp) pre-quantization latent. Returns (voted_idx, z_q).
 
-    Does its own nearest-neighbor lookup via l2_dist_matrix (a single
-    normalize pass) instead of handing an already-normalized+noised tensor
-    back to the model's own quantize() -- that would normalize a second
-    time, and while mathematically a no-op, float-precision differences
-    right at a decision boundary can flip which code a token gets assigned.
+    Does its own nearest-neighbor lookup via l2_dist_matrix (a single normalize
+    pass) instead of handing an already-normalized and noised tensor back to the
+    model's own quantize(). That path would normalize a second time; although
+    mathematically a no-op, float-precision differences right at a decision
+    boundary can flip which code a token is assigned.
     """
     if seed is not None:
         torch.manual_seed(seed)
@@ -207,7 +205,7 @@ def sqs_logit_ensemble_predict(model, densenet, x: torch.Tensor, K: int, sigma: 
     E = model.quantize.embedding.weight
     idx = l2_dist_matrix(z, E).argmin(-1)
     z_q = model.quantize.get_codebook_entry(idx.view(-1), shape=(K * B, C, Hp, Wp), channel_first=True)
-    recon = model.decode(z_q)  # K*B separate reconstructions -- NOT voted first
+    recon = model.decode(z_q)  # K*B separate reconstructions, not voted first
     logits = densenet_logit(densenet, recon).view(K, B)
     return logits.mean(dim=0)
 
@@ -227,9 +225,9 @@ def dispatch_reconstruct(name: str, model, x: torch.Tensor, params: dict):
 
 
 def dispatch_quantize(name: str, model, h: torch.Tensor, params: dict) -> torch.Tensor:
-    """h -> z_q (unwraps the (idx, z_q) tuple every sqs_quantize* function
-    returns) -- for the BPDA straight-through wrapper, which needs a single
-    h->z_q dispatch point regardless of which SQS variant currently wins."""
+    """Maps h to z_q, unwrapping the (idx, z_q) tuple every sqs_quantize*
+    function returns. For the BPDA straight-through wrapper, which needs a single
+    h-to-z_q dispatch point regardless of which SQS variant currently wins."""
     if name == "flat":
         _, z_q = sqs_quantize(model, h, params["K"], params["sigma"])
         return z_q

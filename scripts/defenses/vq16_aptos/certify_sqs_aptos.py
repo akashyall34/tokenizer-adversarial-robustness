@@ -5,7 +5,7 @@ headline condition). See src/defenses/vq16/certify.py for the mechanism and
 the margin-adaptive radius caveat.
 
 The single most expensive check in this pipeline (N_IMAGES x N_PASSES full
-pipeline forward passes, x2 models) -- at n=128, N=100 that's ~25,600 passes
+pipeline forward passes, x2 models); at n=128, N=100 that's ~25,600 passes
 total. Budget real wall-clock time; use --n/--n-passes to shrink it while iterating.
 
 Usage:
@@ -83,12 +83,12 @@ def main():
     advft_eps = args.advft_eps255 if args.advft_eps255 is not None else cfg["eps_grid"][-1]
 
     winner_path = os.path.join(args.out_dir, "vq16_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_aptos.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_aptos.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
     if sqs_name == "margin_adaptive":
         print(f"BEST_SQS_NAME={sqs_name}: per-token sigma varies, so the certified RADIUS is not "
-              f"well-defined -- only p_A_lower/certified will be reported, radius will be NaN.")
+              f"well-defined; only p_A_lower/certified will be reported, radius will be NaN.")
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir)
@@ -111,13 +111,13 @@ def main():
                                  cfg["img_size"], sqs_name, sqs_params, args.n_passes, args.alpha, device)
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"vq16_advft_eps{advft_eps}_aptos.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_aptos.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_aptos.py first"
     ft_net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
     ft_net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_net.eval()
     for p in ft_net.parameters():
         p.requires_grad_(False)
-    df_advft = run_certification(ft_net, densenet, f"advft(eps{advft_eps})+best_sqs -- the headline condition",
+    df_advft = run_certification(ft_net, densenet, f"advft(eps{advft_eps})+best_sqs; the headline condition",
                                   cert_items, cfg["img_size"], sqs_name, sqs_params, args.n_passes, args.alpha, device)
 
     df = pd.concat([df_orig, df_advft], ignore_index=True)

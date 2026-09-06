@@ -1,23 +1,22 @@
 """Randomized-smoothing certified robustness (Cohen, Rosenfeld, Kolter 2019),
 applied to whichever SQS variant won the sweep (src/defenses/vq16/sqs.py).
 
-Every recovery number elsewhere is empirical -- true only against the
-specific attacks tested. A certified bound is a stronger, attack-independent
-claim: run N independent single-pass (K=1) noisy defended forward passes
-through the full pipeline (tokenizer+SQS -> decode -> classify), take the
-majority-vote predicted class, and compute a Clopper-Pearson lower confidence
-bound p_A_lower on the TRUE probability that pass returns that class. If
-p_A_lower > 0.5, the prediction is certified robust to ANY perturbation
-(in the space noise is injected -- the pre-quantization latent) within
-radius r = sigma * Phi^-1(p_A_lower) -- guaranteed, not just observed against
-whatever's in the attack cache.
+Every recovery number elsewhere is empirical, true only against the specific
+attacks tested. A certified bound is a stronger, attack-independent claim: run N
+independent single-pass (K=1) noisy defended forward passes through the full
+pipeline (tokenizer and SQS, then decode, then classify), take the majority-vote
+predicted class, and compute a Clopper-Pearson lower confidence bound p_A_lower
+on the true probability that a pass returns that class. If p_A_lower > 0.5, the
+prediction is certified robust to any perturbation of the pre-quantization latent
+(the space the noise is injected in) within radius r = sigma * Phi^-1(p_A_lower).
+That is a guarantee, not an observation against whatever is in the attack cache.
 
-Caveat: Cohen et al.'s radius formula assumes ONE fixed, global noise scale.
-It is NOT valid when sigma varies per token, which is exactly what
-margin-adaptive noise does. p_A_lower and the certified boolean stay
-meaningful (pure vote agreement, distribution-agnostic) for margin_adaptive,
-but the quantitative radius would be mathematically unsound, so it's reported
-as NaN rather than a number that overstates what's actually proven.
+Caveat: Cohen et al.'s radius formula assumes one fixed, global noise scale. It
+is not valid when sigma varies per token, which is what margin-adaptive noise
+does. p_A_lower and the certified boolean stay meaningful for margin_adaptive
+(they are pure vote agreement, distribution-agnostic), but the quantitative
+radius would be unsound, so it is reported as NaN rather than a number that
+overstates what is proven.
 """
 import numpy as np
 import torch
@@ -31,8 +30,8 @@ RADIUS_VALID_VARIANTS = ("flat", "spatial")
 
 
 def single_pass_params(sqs_name: str, sqs_params: dict) -> dict:
-    """Same params as the K-voted winner, but forced to K=1 -- certification
-    needs N independent single noisy draws, not N K-voted draws."""
+    """Same params as the K-voted winner but forced to K=1. Certification needs N
+    independent single noisy draws, not N K-voted draws."""
     p = dict(sqs_params)
     p["K"] = 1
     return p

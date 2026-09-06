@@ -1,0 +1,5 @@
+tokenizer,attack,n_real,n_fake,rfid_pooled
+vq16,M1,256,1280,49.475
+vq16,M3_alpha03,256,1280,88.537
+vq16,M2-sat,256,1280,31.384
+vq16,M2-unb,256,1280,98.903

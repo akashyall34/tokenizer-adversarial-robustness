@@ -59,19 +59,19 @@ def main():
 
     for atk, lbl in WITH_RECON_ATTACKS:
         make_table(df, order, eps_values, atk, "drop_recon", tbl_dir,
-                   f"withRecon_AUCdrop_{atk}", f"WITH reconstruction -- AUC drop -- {lbl}")
+                   f"withRecon_AUCdrop_{atk}", f"WITH reconstruction: AUC drop, {lbl}")
     for atk, lbl in WITH_RECON_ATTACKS:
         make_table(df, order, eps_values, atk, "drop_probe", tbl_dir,
-                   f"withoutRecon_AUCdrop_{atk}", f"WITHOUT reconstruction (probe) -- AUC drop -- {lbl}")
+                   f"withoutRecon_AUCdrop_{atk}", f"WITHOUT reconstruction (probe): AUC drop, {lbl}")
 
     make_table(df, order, eps_values, "M2-unb", "token_flip_rate_pct", tbl_dir,
-               "flip_rate_M2-unb", "Token flip rate % -- M2-unb (geometric, unbounded)")
+               "flip_rate_M2-unb", "Token flip rate %: M2-unb (geometric, unbounded)")
     make_table(df, order, eps_values, "M2-unb", "emb_disp_pure_mean", tbl_dir,
-               "displacement_M2-unb", "Embedding displacement -- M2-unb (geometric, unbounded)")
+               "displacement_M2-unb", "Embedding displacement: M2-unb (geometric, unbounded)")
 
     clean = df.groupby("tokenizer")[["auc_raw_clean", "auc_recon_clean", "auc_probe_clean"]].first().reindex(order)
     clean.to_csv(f"{tbl_dir}/clean_AUC_reference.csv")
-    print("\n### Clean AUC (no attack) -- reference")
+    print("\n### Clean AUC (no attack): reference")
     print(clean.round(3).to_string())
 
     print("\nsaved", len(os.listdir(tbl_dir)), "tables to", tbl_dir)

@@ -69,12 +69,12 @@ def run_certification(tok, densenet, label, items, img_size, sqs_name, sqs_param
 
 def run_one(tok_name, load_fresh, args, cfg, densenet, cert_items, advft_eps, device):
     winner_path = os.path.join(args.out_dir, f"{tok_name}_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_kermany.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_kermany.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
     if sqs_name == "margin_adaptive":
         print(f"{tok_name}: BEST_SQS_NAME={sqs_name}: per-token sigma varies, so the certified RADIUS is "
-              f"not well-defined -- only p_A_lower/certified will be reported, radius will be NaN.")
+              f"not well-defined; only p_A_lower/certified will be reported, radius will be NaN.")
 
     csv_path = os.path.join(args.out_dir, f"{tok_name}_sqs_certified_radii.csv")
     if os.path.isfile(csv_path):
@@ -89,13 +89,13 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, cert_items, advft_eps, de
     torch.cuda.empty_cache()
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_advft_eps{advft_eps}.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_kermany.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_kermany.py first"
     ft_tok = load_fresh()
     ft_tok.net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_tok.net.eval()
     for p in ft_tok.net.parameters():
         p.requires_grad_(False)
-    df_advft = run_certification(ft_tok, densenet, f"{tok_name} advft(eps{advft_eps})+best_sqs -- the headline condition",
+    df_advft = run_certification(ft_tok, densenet, f"{tok_name} advft(eps{advft_eps})+best_sqs; the headline condition",
                                   cert_items, cfg["img_size"], sqs_name, sqs_params, args.n_passes, args.alpha, device)
     del ft_tok
     torch.cuda.empty_cache()

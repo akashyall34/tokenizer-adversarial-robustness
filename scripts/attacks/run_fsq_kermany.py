@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """FSQ Kermany pipeline: M1 / M2-sat / M2-unb attacks, linear probe, and
 evaluation into outputs/fsq_attack_table.csv. M0 (tokenizer-free) is reused
-from the VQ-16 run -- see run_vq16_kermany.py, which saves it under
-<adv-dir>/m0/.
+from the VQ-16 run (see run_vq16_kermany.py, which saves it under
+<adv-dir>/m0/).
 
 Uses the anchored FSQ margin loss (make_attacks_anchored; see
 src/attacks/fsq_attacks.py). The M3_alpha03 blend is not included for Kermany

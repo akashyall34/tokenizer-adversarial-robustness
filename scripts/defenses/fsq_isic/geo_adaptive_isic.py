@@ -11,7 +11,7 @@ scripts/defenses/fsq_aptos/geo_adaptive_aptos.py:
 
 Same blind spot as every other tokenizer's version: pure geo's gradient
 never reaches decode() or the classifier, so decoder-realism/combined's
-geo_auc is not evidence of real robustness against that attack -- trust
+geo_auc is not evidence of real robustness against that attack; trust
 geo_bpda_auc for those two conditions instead. See docs/known_limitations.md.
 
 Usage:
@@ -63,7 +63,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
     p.add_argument("--steps", type=int, default=50)
@@ -115,7 +115,7 @@ def main():
         geo_rows.append(dict(label=label, eps255=eps255, n=len(y_np),
                               clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg), geo_auc=auc(y_np, geo_lg),
                               geo_asr=asr(clean_lg, geo_lg, y_np)))
-        print(f"--- {label} -- GEOMETRIC adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
+        print(f"--- {label}: GEOMETRIC adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
         print(f"clean AUC          : {geo_rows[-1]['clean_auc']:.4f}")
         print(f"static-attack AUC  : {geo_rows[-1]['static_auc']:.4f}")
         print(f"geo-adaptive AUC   : {geo_rows[-1]['geo_auc']:.4f}")
@@ -126,13 +126,13 @@ def main():
         geo_bpda_rows.append(dict(label=label, eps255=eps255, n=len(y_np),
                                    clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg),
                                    geo_bpda_auc=auc(y_np, gb_lg), geo_bpda_asr=asr(clean_lg, gb_lg, y_np)))
-        print(f"--- {label} -- BLENDED live-adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
+        print(f"--- {label}: BLENDED live-adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
         print(f"geo+BCE-adaptive AUC: {geo_bpda_rows[-1]['geo_bpda_auc']:.4f}")
         print(f"geo+BCE-adaptive ASR: {geo_bpda_rows[-1]['geo_bpda_asr']:.1f}%\n")
 
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"fsq_advft_eps{eps255}_isic.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_isic.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_isic.py first"
         tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
         tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         tok.net.eval()
@@ -147,7 +147,7 @@ def main():
         (decoder_ckpt_path, "decoder-realism-robust ALONE, no SQS"),
         (combined_ckpt_path, "combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         for eps255 in cfg["eps_grid"]:
             tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
             tok.net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
@@ -160,7 +160,7 @@ def main():
     pd.DataFrame(geo_bpda_rows).to_csv(geo_bpda_csv, index=False)
     print("wrote ->", geo_csv)
     print("wrote ->", geo_bpda_csv)
-    print("\nFor decoder-realism/combined, trust geo_bpda_auc, not geo_auc -- see this script's "
+    print("\nFor decoder-realism/combined, trust geo_bpda_auc, not geo_auc; see this script's "
           "module docstring for why the pure geo attack is blind to decoder-side defenses.")
 
 

@@ -3,14 +3,14 @@
 every VQ-16 defense checkpoint on its own: advft (per-eps checkpoints,
 each attacked at its own matching eps255), decoder-realism-robust, and the
 combined checkpoint (each a single fixed checkpoint, attacked across the
-full eps grid as the attack BUDGET rather than which checkpoint is loaded).
+full eps grid as the attack budget rather than which checkpoint is loaded).
 
-Isolates whether each defense survives adaptive attack without SQS's help --
-every BPDA result in bpda_sqs_aptos.py included SQS in the pipeline, and
+Isolates whether each defense survives adaptive attack without SQS's help.
+Every BPDA result in bpda_sqs_aptos.py included SQS in the pipeline, and
 flat SQS is the mechanism that collapsed under adaptive attack there, so
 this answers a real open question rather than restating that result.
 
-One CSV, all three checkpoint families -- compare them directly: whichever
+One CSV, all three checkpoint families; compare them directly: whichever
 shows the smallest BPDA-adaptive AUC drop from its own clean AUC is the one
 that actually survives an adaptive attacker best.
 
@@ -67,7 +67,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/aptos_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_aptos.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
     p.add_argument("--steps", type=int, default=50)
@@ -124,7 +124,7 @@ def main():
     rows = []
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"vq16_advft_eps{eps255}_aptos.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_aptos.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_aptos.py first"
         net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
         net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         net.eval()
@@ -140,7 +140,7 @@ def main():
         (decoder_ckpt_path, "decoder-realism-robust ALONE, no SQS"),
         (combined_ckpt_path, "combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         for eps255 in cfg["eps_grid"]:
             net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
             net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
@@ -154,7 +154,7 @@ def main():
     print("wrote ->", csv_path)
     print("\nCompare all three families: whichever shows the smallest BPDA-adaptive AUC drop from its "
           "own clean AUC, at the eps that matters, is the one that actually survives an adaptive "
-          "attacker best -- that comparison, not any single number in isolation, is what should decide "
+          "attacker best; that comparison, not any single number in isolation, is what should decide "
           "which checkpoint becomes the headline defense.")
 
 

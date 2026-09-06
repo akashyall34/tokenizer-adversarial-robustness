@@ -3,25 +3,22 @@
 checkpoint, run in one pass per checkpoint (an earlier version reloaded each
 checkpoint twice, once per attack; this loads once):
 
-- geo (pure margin): maximizes the CORRECT margin against the model's own
+- geo (pure margin): maximizes the correct margin against the model's own
   current boundary. Fully differentiable, never touches decode() or the
   classifier.
 - geo_bpda (blended): geo margin + BCE-through-decode, live-adaptive
   counterpart to the M3_alpha03 blend, generated live against each checkpoint.
 
-IMPORTANT, read before trusting geo's numbers for decoder-realism/combined:
-the pure geo attack's gradient only ever touches encoder+quant_conv+quantize
--- it never reaches decode() or the classifier. decoder-realism's encoder is
-frozen and byte-identical to the original tokenizer's (only decoder/
-post_quant_conv were trained), so geo computes the EXACT SAME perturbation
-against decoder-realism as it would against the untouched original -- it has
-no gradient line-of-sight into the one thing decoder-realism actually
-changed. A high geo-adaptive AUC for decoder-realism/combined is NOT evidence
-of real robustness; it's evidence this attack never had the ability to see
-the defense. Trust geo_bpda's numbers for decoder-realism/combined instead
-(it routes through decode(), so it can actually see what changed) -- for
-advft, both are meaningful since advft's encoder is what actually changed.
-See docs/known_limitations.md.
+Before trusting geo's numbers for decoder-realism and combined: the pure geo
+attack's gradient only touches encoder, quant_conv, and quantize, never decode()
+or the classifier. Decoder-realism leaves the encoder frozen and byte-identical
+to the original tokenizer (only the decoder and post_quant_conv are trained), so
+geo computes the same perturbation against decoder-realism as against the
+untouched original. It has no line of sight into the one thing decoder-realism
+changed, so a high geo AUC there is not evidence of robustness. Use geo_bpda for
+those two conditions, since it routes through decode() and can see the change.
+For advft, whose encoder is what changed, both are informative. See
+docs/known_limitations.md.
 
 Usage:
     python scripts/defenses/vq16_isic/geo_adaptive_isic.py --data-root /path/to/isic2019 \
@@ -78,7 +75,7 @@ def parse_args():
     p.add_argument("--ckpt-dir", default="ckpts/defenses")
     p.add_argument("--config", default="configs/isic_attack.yaml")
     p.add_argument("--combined-eps255", type=int, default=None,
-                    help="which combined checkpoint to load -- must match whatever "
+                    help="which combined checkpoint to load; must match whatever "
                          "merge_checkpoints_isic.py was run with (default: worst-case/largest in eps_grid)")
     p.add_argument("--n", type=int, default=None, help="default: full REPORT_ITEMS")
     p.add_argument("--steps", type=int, default=50)
@@ -130,7 +127,7 @@ def main():
         geo_rows.append(dict(label=label, eps255=eps255, n=len(y_np),
                               clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg), geo_auc=auc(y_np, geo_lg),
                               geo_asr=asr(clean_lg, geo_lg, y_np)))
-        print(f"--- {label} -- GEOMETRIC adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
+        print(f"--- {label}: GEOMETRIC adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
         print(f"clean AUC          : {geo_rows[-1]['clean_auc']:.4f}")
         print(f"static-attack AUC  : {geo_rows[-1]['static_auc']:.4f}")
         print(f"geo-adaptive AUC   : {geo_rows[-1]['geo_auc']:.4f}")
@@ -141,13 +138,13 @@ def main():
         geo_bpda_rows.append(dict(label=label, eps255=eps255, n=len(y_np),
                                    clean_auc=auc(y_np, clean_lg), static_auc=auc(y_np, static_lg),
                                    geo_bpda_auc=auc(y_np, gb_lg), geo_bpda_asr=asr(clean_lg, gb_lg, y_np)))
-        print(f"--- {label} -- BLENDED live-adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
+        print(f"--- {label}: BLENDED live-adaptive attack (n={len(y_np)}, eval eps255={eps255}) ---")
         print(f"geo+BCE-adaptive AUC: {geo_bpda_rows[-1]['geo_bpda_auc']:.4f}")
         print(f"geo+BCE-adaptive ASR: {geo_bpda_rows[-1]['geo_bpda_asr']:.1f}%\n")
 
     for eps255 in cfg["eps_grid"]:
         ckpt_path = os.path.join(args.ckpt_dir, f"vq16_advft_eps{eps255}_isic.pt")
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run run_advft_isic.py first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run run_advft_isic.py first"
         net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
         net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
         net.eval()
@@ -162,7 +159,7 @@ def main():
         (decoder_ckpt_path, "decoder-realism-robust ALONE, no SQS"),
         (combined_ckpt_path, "combined (advft+decoder-realism-robust) ALONE, no SQS"),
     ]:
-        assert os.path.isfile(ckpt_path), f"missing {ckpt_path} -- run its training/merge script first"
+        assert os.path.isfile(ckpt_path), f"missing {ckpt_path}; run its training/merge script first"
         for eps255 in cfg["eps_grid"]:
             net = load_vq16_net(args.llamagen_repo, args.vq16_ckpt, device)
             net.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=False))
@@ -175,7 +172,7 @@ def main():
     pd.DataFrame(geo_bpda_rows).to_csv(geo_bpda_csv, index=False)
     print("wrote ->", geo_csv)
     print("wrote ->", geo_bpda_csv)
-    print("\nFor decoder-realism/combined, trust geo_bpda_auc, not geo_auc -- see this script's "
+    print("\nFor decoder-realism/combined, trust geo_bpda_auc, not geo_auc; see this script's "
           "module docstring for why the pure geo attack is blind to decoder-side defenses.")
 
 

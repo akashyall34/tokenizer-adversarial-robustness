@@ -1,5 +1,5 @@
 """Randomized-smoothing certified robustness for MediTok/UniTok's winning SQS
-variant -- same role and same margin-adaptive-radius caveat as
+variant. Same role and same margin-adaptive-radius caveat as
 src/defenses/vq16/certify.py.
 """
 import numpy as np

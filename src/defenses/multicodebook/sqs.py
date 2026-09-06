@@ -1,15 +1,14 @@
-"""SQS for MediTok/UniTok's multi-codebook architecture -- same K-pass
-noisy-majority-vote mechanism as src/defenses/vq16/sqs.py, but operating on
-the flat [B,N,D] pre-quantization representation split into per-sub-codebook
-chunks with cosine-similarity lookup, instead of VQ-16's single conv-grid
-codebook with L2 lookup. Three variants, same shape as VQ-16's: flat,
-spatial-consensus, margin-adaptive.
+"""SQS for MediTok/UniTok's multi-codebook architecture: the same K-pass
+noisy-majority-vote mechanism as src/defenses/vq16/sqs.py, but operating on the
+flat [B,N,D] pre-quantization representation split into per-sub-codebook chunks
+with cosine-similarity lookup, instead of VQ-16's single conv-grid codebook with
+L2 lookup. Three variants, the same shape as VQ-16's: flat, spatial-consensus,
+margin-adaptive.
 
-The spatial-consensus variant needs the N tokens to form a square grid to do
-a 4-connected neighbor blend -- true for VQ-16 by construction (it's a conv
-feature map), NOT assumed here. If a tokenizer's real token layout isn't
-square, sqs_quantize_spatial raises rather than silently reshaping into
-something wrong.
+The spatial-consensus variant needs the N tokens to form a square grid for its
+4-connected neighbor blend. That holds for VQ-16 by construction (it is a conv
+feature map) but is not assumed here: if a tokenizer's real token layout is not
+square, sqs_quantize_spatial raises rather than reshaping into something wrong.
 """
 import torch
 import torch.nn.functional as F
@@ -19,9 +18,9 @@ from src.models.densenet_classifier import logit as densenet_logit
 
 
 def sqs_quantize(tok, z: torch.Tensor, K: int, sigma: float, seed: int = None):
-    """z: [B,N,D] pre-quantization features. Returns (voted_idx_list, z_q) --
-    voted_idx_list is a list of num_codebooks tensors [B,N], z_q is [B,N,D]
-    reassembled from the voted per-chunk codes."""
+    """z: [B,N,D] pre-quantization features. Returns (voted_idx_list, z_q),
+    where voted_idx_list is a list of num_codebooks tensors [B,N] and z_q is
+    [B,N,D] reassembled from the voted per-chunk codes."""
     if seed is not None:
         torch.manual_seed(seed)
     B, N, D = z.shape
@@ -44,13 +43,13 @@ def sqs_quantize(tok, z: torch.Tensor, K: int, sigma: float, seed: int = None):
 
 
 def _token_grid_neighbor_mean(z_q: torch.Tensor) -> torch.Tensor:
-    """z_q: [B,N,D] -- reshapes N into a square H x W grid (asserted, not
-    assumed) to do a 4-connected spatial blend."""
+    """Reshapes z_q [B,N,D] into a square H x W grid (asserted, not assumed) for a
+    4-connected spatial blend."""
     B, N, D = z_q.shape
     H = int(round(N ** 0.5))
     assert H * H == N, (
         f"spatial-consensus SQS needs a square token grid, got N={N} which is not a perfect "
-        f"square (H={H}) -- this tokenizer's real token layout doesn't match that assumption; "
+        f"square (H={H}). This tokenizer's real token layout does not match that assumption; "
         f"confirm the real grid shape and fix this reshape, or skip the spatial variant.")
     grid = z_q.view(B, H, H, D).permute(0, 3, 1, 2)  # [B,D,H,H]
     pad = F.pad(grid, (1, 1, 1, 1), mode="replicate")
@@ -120,12 +119,12 @@ def per_token_min_margin(tok, z: torch.Tensor) -> torch.Tensor:
 
 def margin_adaptive_sigma_map_from_z(tok, z: torch.Tensor, sigma_base: float, margin_low: float,
                                       margin_high: float, sigma_mult_max: float) -> torch.Tensor:
-    """Per-token sigma, scaled by how close each token's WEAKEST chunk margin
-    is to the boundary -- fragile tokens get more noise. Takes z directly
-    (not x) so it composes cleanly with a BPDA straight-through wrapper."""
+    """Per-token sigma, scaled by how close each token's weakest chunk margin is
+    to the boundary, so fragile tokens get more noise. Takes z directly, not x,
+    so it composes cleanly with a BPDA straight-through wrapper."""
     with torch.no_grad():
-        # frac must be 0 at margin_low (safest) and 1 at margin_high (least safe of the clean
-        # distribution) so fragile tokens get MORE noise -- (margin - margin_low), not the reverse.
+        # frac is 0 at margin_low (safest) and 1 at margin_high (least safe of the clean
+        # distribution) so fragile tokens get more noise: (margin - margin_low), not the reverse.
         margin = per_token_min_margin(tok, z)
         frac = ((margin - margin_low) / max(margin_high - margin_low, 1e-8)).clamp(0, 1)
         sigma_map = sigma_base * (1.0 + frac * (sigma_mult_max - 1.0))
@@ -190,11 +189,11 @@ def sqs_probe_feat_adaptive(tok, x: torch.Tensor, K: int, sigma_base: float, mar
 
 
 def sqs_logit_ensemble_predict(tok, densenet, x: torch.Tensor, K: int, sigma: float, seed: int = None):
-    """A different smoothing POINT than the three variants above: K independent
+    """A different smoothing point than the three variants above: K independent
     noisy re-quantizations, each decoded and classified separately, then the K
-    logits averaged (Cohen et al. 2019's standard recipe) -- diagnostic for
-    whether token-voting's failure against dense/redundant attacks is specific
-    to voting on the token, or survives per-sample logit-averaging too."""
+    logits averaged (Cohen et al. 2019's standard recipe). It is a diagnostic for
+    whether token-voting's failure against dense or redundant attacks is specific
+    to voting on the token or survives per-sample logit-averaging too."""
     if seed is not None:
         torch.manual_seed(seed)
     z = tok.encode_prequant(x)
@@ -208,7 +207,7 @@ def sqs_logit_ensemble_predict(tok, densenet, x: torch.Tensor, K: int, sigma: fl
         f_noisy = F.normalize(f + sigma * torch.randn_like(f), dim=-1)
         E = F.normalize(cb.codebook.weight, dim=1)
         d = 2.0 - 2.0 * (f_noisy @ E.T)
-        idx = d.argmin(-1)  # NOT voted -- each of the K draws decoded separately
+        idx = d.argmin(-1)  # not voted; each of the K draws is decoded separately
         code_chunks.append(E[idx])
     z_q = torch.cat(code_chunks, dim=-1)
     recon = decode_only(tok.net, z_q)
@@ -241,8 +240,8 @@ def dispatch_probe_feat(name: str, tok, x: torch.Tensor, params: dict):
 
 
 def dispatch_quantize(name: str, tok, z: torch.Tensor, params: dict) -> torch.Tensor:
-    """z -> z_q (unwraps the (idx, z_q) tuple where relevant) -- for the BPDA
-    straight-through wrapper."""
+    """Maps z to z_q, unwrapping the (idx, z_q) tuple where relevant, for the
+    BPDA straight-through wrapper."""
     if name == "flat":
         _, z_q = sqs_quantize(tok, z, params["K"], params["sigma"])
         return z_q

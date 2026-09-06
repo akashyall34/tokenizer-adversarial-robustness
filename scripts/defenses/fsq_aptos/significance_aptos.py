@@ -62,7 +62,7 @@ def main():
     decoder_ckpt_path = os.path.join(args.ckpt_dir, "fsq_decoder_realism_robust_aptos.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"fsq_combined_eps{advft_eps}_aptos.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path, combined_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training/merge script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training/merge script first"
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir)

@@ -79,7 +79,7 @@ def finetune_one(tok_name, load_fresh, eps255, args, orig_tok, densenet, sel_ite
     print(f"{tok_name} eps{eps255}: training set = {X_adv_train.shape[0]} cached (image, attack-variant) pairs")
 
     tok = load_fresh()
-    print(f"{tok_name} eps{eps255}: submodule trainability check --")
+    print(f"{tok_name} eps{eps255}: submodule trainability check:")
     freeze_non_encoder(tok, verbose=True)
     opt = torch.optim.Adam([p for p in tok.net.parameters() if p.requires_grad], lr=args.lr)
 
@@ -127,7 +127,7 @@ def finetune_one(tok_name, load_fresh, eps255, args, orig_tok, densenet, sel_ite
             best_state = {k: v.detach().clone().cpu() for k, v in tok.net.state_dict().items()}
 
         if clean_auc < clean_auc_baseline - args.clean_auc_collapse_drop:
-            print(f"  {tok_name} eps{eps255}: *** CLEAN AUC COLLAPSE at epoch {epoch} -- stopping, "
+            print(f"  {tok_name} eps{eps255}: *** CLEAN AUC COLLAPSE at epoch {epoch}; stopping, "
                   f"reverting to best epoch (clean_auc={best_auc:.4f}) ***")
             break
 
@@ -140,11 +140,11 @@ def finetune_one(tok_name, load_fresh, eps255, args, orig_tok, densenet, sel_ite
             else:
                 patience_ctr = 0
             if epoch + 1 >= args.early_stop_min_epochs and patience_ctr >= args.early_stop_patience:
-                print(f"  {tok_name} eps{eps255}: early stop at epoch {epoch} -- improvement plateaued")
+                print(f"  {tok_name} eps{eps255}: early stop at epoch {epoch}; improvement plateaued")
                 break
         prev_loss = row["margin_loss"]
 
-    assert best_state is not None, f"{tok_name} eps{eps255}: no epoch ever completed -- nothing to save"
+    assert best_state is not None, f"{tok_name} eps{eps255}: no epoch ever completed; nothing to save"
     tok.net.load_state_dict(best_state)
     torch.save(tok.net.state_dict(), ckpt_path)
     assert os.path.getsize(ckpt_path) > 0, f"{tok_name} eps{eps255}: torch.save produced a 0-byte file"
@@ -157,9 +157,9 @@ def finetune_one(tok_name, load_fresh, eps255, args, orig_tok, densenet, sel_ite
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, orig_tok.reconstruct(drift_x)).cpu().numpy())))
         auc_ft = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, tok.reconstruct(drift_x)).cpu().numpy())))
     drop = auc_orig - auc_ft
-    print(f"  {tok_name} eps{eps255}: clean recon AUC (REPORT_ITEMS) -- original={auc_orig:.4f}  "
+    print(f"  {tok_name} eps{eps255}: clean recon AUC (REPORT_ITEMS): original={auc_orig:.4f}  "
           f"fine-tuned={auc_ft:.4f}  (drop={drop:.4f})"
-          f"{'  *** LARGE DROP -- possible collapse, inspect before trusting this checkpoint ***' if drop > 0.03 else ''}")
+          f"{'  *** LARGE DROP; possible collapse, inspect before trusting this checkpoint ***' if drop > 0.03 else ''}")
     del tok, X_adv_train
     torch.cuda.empty_cache()
     return ckpt_path

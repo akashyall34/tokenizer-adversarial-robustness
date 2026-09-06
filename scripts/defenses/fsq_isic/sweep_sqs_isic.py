@@ -8,8 +8,8 @@ scripts/defenses/fsq_aptos/sweep_sqs_aptos.py.
 
 Every sigma/K value here starts from the same grid VQ-16/MediTok's sweeps
 use (both cosine/unit-normalized spaces, plausibly similar order of
-magnitude to FSQ's own bounded z-space) but is a NEW measured constant for
-FSQ, not assumed equal -- confirmed by this sweep against real data, same
+magnitude to FSQ's own bounded z-space) but is a new measured constant for
+FSQ, not assumed equal; confirmed by this sweep against real data, same
 rule every hyperparameter in this project follows.
 
 Usage:
@@ -79,7 +79,7 @@ def pick_best(df, score_col, clean_col="auc_clean"):
     ok = df[df[clean_col] >= CLEAN_AUC_FLOOR]
     if len(ok):
         return ok.loc[ok[score_col].idxmax()]
-    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- picking best clean-preserving config instead ***")
+    print(f"*** NOTHING clears the clean-AUC floor ({CLEAN_AUC_FLOOR}); picking best clean-preserving config instead ***")
     return df.loc[df[clean_col].idxmax()]
 
 
@@ -112,10 +112,10 @@ def main():
             - orig_tok.reconstruct(Xc_sel[:16])).abs().max().item()
     print(f"sqs_reconstruct(sigma=0) vs. real reconstruct: max abs diff = {diff:.6f}")
     if diff > 1e-2:
-        print("*** MISMATCH exceeds the expected float32-decoder noise floor -- a REAL logic error. "
+        print("*** MISMATCH exceeds the expected float32-decoder noise floor; a REAL logic error. "
               "Needs fixing before trusting any SQS number. ***")
     else:
-        print("within the expected float32-through-decoder noise floor -- safe to proceed.")
+        print("within the expected float32-through-decoder noise floor; safe to proceed.")
 
     # --- pixel-noise baseline ---
     csv_pixel = os.path.join(args.out_dir, "fsq_pixel_noise_sweep.csv")
@@ -252,7 +252,7 @@ def main():
     ok = summary[summary.auc_clean >= CLEAN_AUC_FLOOR]
     pool = ok if len(ok) else summary
     if not len(ok):
-        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}) -- "
+        print(f"*** NONE of the three variants clear the clean-AUC floor ({CLEAN_AUC_FLOOR}); "
               f"picking the best clean-preserving variant instead ***")
     best_name = pool.loc[pool.mean_auc_adv.idxmax(), "variant"] if len(ok) else pool.loc[pool.auc_clean.idxmax(), "variant"]
     print(f"\nWINNER: {best_name}")

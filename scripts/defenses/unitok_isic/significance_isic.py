@@ -66,7 +66,7 @@ def run_one(tok_name, load_fresh, args, cfg, densenet, x, y, device):
     decoder_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_decoder_realism_robust_isic.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_combined_eps{advft_eps}_isic.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path, combined_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training/merge script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training/merge script first"
 
     def load_ckpt(ckpt_path):
         tok = load_fresh()

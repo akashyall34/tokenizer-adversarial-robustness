@@ -5,7 +5,7 @@ hard-stop-on-collapse discipline as
 scripts/defenses/vq16_aptos/merge_checkpoints_aptos.py.
 
 One extra wrinkle vs. VQ-16: UniTok's quantizer has a `vocab_usage`
-buffer -- an EMA/usage-counter stat updated on every forward pass (including
+buffer; an EMA/usage-counter stat updated on every forward pass (including
 plain eval-mode reconstruct() calls), not a learned parameter, and it never
 feeds back into quantization. It legitimately diverges between any two
 checkpoints even from the same starting weights, so it's excluded from the
@@ -79,7 +79,7 @@ def merge_one(tok_name, load_fresh, args, cfg, densenet, report_items, device):
     decoder_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_decoder_realism_robust_aptos.pt")
     combined_ckpt_path = os.path.join(args.ckpt_dir, f"{tok_name}_combined_eps{advft_eps}_aptos.pt")
     for p in (advft_ckpt_path, decoder_ckpt_path):
-        assert os.path.isfile(p), f"missing checkpoint: {p} -- run its training script first"
+        assert os.path.isfile(p), f"missing checkpoint: {p}; run its training script first"
 
     orig_tok = load_fresh()
 
@@ -102,11 +102,11 @@ def merge_one(tok_name, load_fresh, args, cfg, densenet, report_items, device):
     with torch.no_grad():
         auc_orig = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, orig_tok.reconstruct(drift_x)).cpu().numpy())))
         auc_comb = roc_auc_score(drift_y, 1 / (1 + np.exp(-densenet_logit(densenet, combined.reconstruct(drift_x)).cpu().numpy())))
-    print(f"{tok_name}: clean recon AUC -- original={auc_orig:.4f}  combined={auc_comb:.4f}  "
+    print(f"{tok_name}: clean recon AUC: original={auc_orig:.4f}  combined={auc_comb:.4f}  "
           f"(drop={auc_orig - auc_comb:.4f}){'  *** LARGE DROP ***' if (auc_orig - auc_comb) > 0.03 else ''}")
 
     assert auc_comb > AUC_FLOOR, (
-        f"{tok_name} combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance -- broken "
+        f"{tok_name} combined checkpoint's clean AUC ({auc_comb:.4f}) is at/near chance; broken "
         f"checkpoint, not a real defense result. Delete {advft_ckpt_path} and {combined_ckpt_path}, "
         f"then rerun this eps's fine-tuning.")
     print(f"{tok_name}: DONE. combined model ready at {combined_ckpt_path}\n")

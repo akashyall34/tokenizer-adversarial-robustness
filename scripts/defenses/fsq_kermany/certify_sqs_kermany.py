@@ -80,12 +80,12 @@ def main():
     advft_eps = args.advft_eps255 if args.advft_eps255 is not None else cfg["eps_grid"][-1]
 
     winner_path = os.path.join(args.out_dir, "fsq_sqs_winner.json")
-    assert os.path.isfile(winner_path), f"missing {winner_path} -- run sweep_sqs_kermany.py first"
+    assert os.path.isfile(winner_path), f"missing {winner_path}; run sweep_sqs_kermany.py first"
     winner = json.load(open(winner_path))
     sqs_name, sqs_params = winner["name"], winner["params"]
     if sqs_name == "margin_adaptive":
         print(f"BEST_SQS_NAME={sqs_name}: per-token sigma varies, so the certified RADIUS is not "
-              f"well-defined -- only p_A_lower/certified will be reported, radius will be NaN.")
+              f"well-defined; only p_A_lower/certified will be reported, radius will be NaN.")
 
     seed_everything(cfg["seed"])
     _, _, test_items = build_splits(args.data_root, args.out_dir, cfg["seed"], cfg["val_frac"])
@@ -108,13 +108,13 @@ def main():
                                  cfg["img_size"], sqs_name, sqs_params, args.n_passes, args.alpha, device)
 
     advft_ckpt_path = os.path.join(args.ckpt_dir, f"fsq_advft_eps{advft_eps}.pt")
-    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path} -- run run_advft_kermany.py first"
+    assert os.path.isfile(advft_ckpt_path), f"missing {advft_ckpt_path}; run run_advft_kermany.py first"
     ft_tok = FSQTokenizer(args.fsq_repo, args.fsq_ckpt, device)
     ft_tok.net.load_state_dict(torch.load(advft_ckpt_path, map_location=device, weights_only=False))
     ft_tok.net.eval()
     for p in ft_tok.net.parameters():
         p.requires_grad_(False)
-    df_advft = run_certification(ft_tok, densenet, f"advft(eps{advft_eps})+best_sqs -- the headline condition",
+    df_advft = run_certification(ft_tok, densenet, f"advft(eps{advft_eps})+best_sqs; the headline condition",
                                   cert_items, cfg["img_size"], sqs_name, sqs_params, args.n_passes, args.alpha, device)
 
     df = pd.concat([df_orig, df_advft], ignore_index=True)

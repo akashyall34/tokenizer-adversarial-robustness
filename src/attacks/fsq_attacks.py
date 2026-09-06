@@ -6,18 +6,18 @@ M2-unb: same objective, unbounded.
 M3_alpha03: non-paper alpha=0.3 blend of the M2 margin with M1's BCE loss.
 
 FSQ has no learned codebook, so the "margin" is the distance from each scalar
-latent dimension to its nearest rounding boundary. `margin_loss_anchored`
-anchors the target bin to the clean sample once, before the PGD loop, rather
-than recomputing the nearest bin from the perturbed latent every step -- this
-keeps the attack pushing in one consistent direction as the perturbation
-crosses a boundary, matching how the VQ-16 / multi-codebook margin losses
-anchor to a fixed clean assignment.
+latent dimension to its nearest rounding boundary. `margin_loss_anchored` fixes
+the target bin to the clean sample once, before the PGD loop, instead of
+recomputing the nearest bin from the perturbed latent at every step. This keeps
+the attack pushing in one direction as the perturbation crosses a boundary,
+the same anchoring the VQ-16 and multi-codebook margin losses use.
 
 `make_attacks_anchored` returns the four attacks above; each run script selects
 the subset it needs (Kermany uses M1 / M2-sat / M2-unb; APTOS and ISIC add
 M3_alpha03).
 
-`logit_fn` is any callable image[B,3,H,W] in [-1,1] -> [B] classifier logit.
+`logit_fn` is any callable mapping image[B,3,H,W] in [-1,1] to a [B] classifier
+logit.
 """
 import torch
 import torch.nn.functional as F
@@ -34,8 +34,8 @@ def clean_anchor(tok, x: torch.Tensor, device: str) -> torch.Tensor:
 
 
 def margin_loss_anchored(z, anchor: torch.Tensor, saturate: bool):
-    """Distance to the boundary of the FIXED clean anchor bin (not the
-    current bin) -- keeps the attack pushing in one consistent direction."""
+    """Distance to the boundary of the fixed clean anchor bin, not the current
+    bin, so the attack keeps pushing in one direction."""
     u = fsq_bound(z)
     m_tok = (0.5 - (u - anchor).abs()).min(dim=-1).values
     return (m_tok.clamp(min=0.0) if saturate else m_tok).mean()
